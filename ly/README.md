@@ -13,7 +13,7 @@ Once Ly is enabled, the system boots directly to the login screen without requir
 ```text
 Boot
  └── runit initializes services (dbus, elogind, NetworkManager)
-      └── Ly launches on TTY2
+      └── Ly launches on TTY2 via agetty
            └── Select "MangoWC" session (auto-remembered after first login)
                 └── Ly executes /usr/share/wayland-sessions/mango.desktop
                      └── scripts/start-mango sets Wayland environment
@@ -30,37 +30,39 @@ Boot
 
 Ly is an **optional** component and is not bundled in `packages.void` to ensure the core rice remains self-contained and runnable from a pure TTY.
 
-### Method 1: Check Pre-built Binary Repository
-Check if `ly` is available in your active XBPS mirrors:
+### Method 1: Automated Installer via `fairyglade/ly` (Recommended)
+The repository installer automates building and configuring [fairyglade/ly](https://github.com/fairyglade/ly):
 ```bash
-xbps-query -Rs ly
-```
-If available, install it directly:
-```bash
-sudo xbps-install -Sy ly
+./install.sh --login-manager ly
 ```
 
-### Method 2: Build via `void-packages` (Recommended)
-If using the Void source packages collection:
+### Method 2: Manual Source Build (`fairyglade/ly`)
+To build Ly directly from upstream:
 ```bash
-git clone --depth=1 https://github.com/void-linux/void-packages.git
-cd void-packages
-./xbps-src binary-bootstrap
-./xbps-src pkg ly
-sudo xbps-install --repository hostdir/binpkgs ly
-```
+# 1. Install build prerequisites
+sudo xbps-install -Sy git zig pam-devel libxcb-devel make
 
-### Method 3: Build from Source
-To build the modern Zig-based or C-based version of Ly directly:
-```bash
-# Install build prerequisites
-sudo xbps-install -Sy git zig libxcb-devel pam-devel
-
-# Clone and compile
-git clone --recurse-submodules https://github.com/fairyglade/ly.git
+# 2. Clone fairyglade/ly
+git clone --depth 1 https://github.com/fairyglade/ly.git
 cd ly
-zig build
-sudo zig build install
+
+# 3. Compile & Install (runit)
+if [ -f Makefile ] || [ -f makefile ]; then
+    make
+    sudo make install
+    [ -d res/ly-runit-service ] && sudo make installrunit
+else
+    zig build -Doptimize=ReleaseFast
+    sudo zig build installnoconf -Dinit_system=runit -Doptimize=ReleaseFast
+fi
+
+# 4. Deploy Nord theme configuration
+sudo mkdir -p /etc/ly
+sudo cp ~/wm/ly/config.ini /etc/ly/config.ini
+
+# 5. Disable TTY2 getty collision and enable service
+[ -e /var/service/agetty-tty2 ] && sudo rm -f /var/service/agetty-tty2
+sudo ln -s /etc/sv/ly /var/service/
 ```
 
 ---
@@ -88,15 +90,11 @@ This automated step:
 
 If you prefer to configure Ly manually without running `install.sh`:
 
-### 1. Wayland Session File (Automatic via MangoWC)
-When `mangowc` is installed on Void Linux (via XBPS or `ninja install`), it automatically installs `/usr/share/wayland-sessions/mango.desktop`.
-
-If this file is missing (e.g. standalone binary installation), install the provided fallback template:
+### 1. Wayland Session File (dbus-run-session mangowc)
+Ensure `/usr/share/wayland-sessions/mango.desktop` uses `dbus-run-session mangowc` so DBus session environment is active:
 ```bash
-if [ ! -f /usr/share/wayland-sessions/mango.desktop ]; then
-    sudo mkdir -p /usr/share/wayland-sessions
-    sudo cp ~/wm/services/mango.desktop /usr/share/wayland-sessions/mango.desktop
-fi
+sudo mkdir -p /usr/share/wayland-sessions
+sudo cp ~/wm/services/mango.desktop /usr/share/wayland-sessions/mango.desktop
 ```
 
 ### 2. Backup & Install Ly Configuration

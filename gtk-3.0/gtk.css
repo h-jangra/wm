@@ -1,0 +1,178 @@
+/* ==============================================================================
+ * Nord Theme for GTK3 & Thunar File Manager
+ * Void Linux × MangoWC
+ * ============================================================================== */
+
+@define-color nord0 #2E3440;
+@define-color nord1 #3B4252;
+@define-color nord2 #434C5E;
+@define-color nord3 #4C566A;
+@define-color nord4 #D8DEE9;
+@define-color nord5 #E5E9F0;
+@define-color nord6 #ECEFF4;
+@define-color nord7 #8FBCBB;
+@define-color nord8 #88C0D0;
+@define-color nord9 #81A1C1;
+@define-color nord10 #5E81AC;
+@define-color nord11 #BF616A;
+@define-color nord12 #D08770;
+@define-color nord13 #EBCB8B;
+@define-color nord14 #A3BE8C;
+@define-color nord15 #B48EAD;
+
+/* Base Window and Backgrounds */
+window,
+.background {
+    background-color: @nord0;
+    color: @nord4;
+}
+
+/* Base typography */
+* {
+    font-family: "Maple Mono", "SymbolsNF", monospace;
+    -gtk-secondary-caret-color: @nord8;
+}
+
+/* Thunar Specific Styling */
+ThunarWindow {
+    background-color: @nord0;
+    color: @nord4;
+}
+
+/* Thunar Side Pane (Shortcuts / Places) */
+ThunarWindow .sidebar,
+ThunarShortcutsPane,
+ThunarTreePane,
+.sidebar list {
+    background-color: #242933;
+    color: @nord4;
+    border-right: 1px solid @nord1;
+}
+
+ThunarWindow .sidebar row:selected {
+    background-color: @nord8;
+    color: @nord0;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+ThunarWindow .sidebar row:hover {
+    background-color: @nord1;
+}
+
+/* Thunar Main File View */
+ThunarStandardView,
+ThunarIconView,
+ThunarDetailsView,
+ThunarCompactView,
+.view {
+    background-color: @nord0;
+    color: @nord4;
+}
+
+.view:selected,
+.view row:selected,
+iconview:selected {
+    background-color: @nord8;
+    color: @nord0;
+    border-radius: 4px;
+}
+
+.view row:hover,
+iconview:hover {
+    background-color: @nord1;
+}
+
+/* Header bar, Toolbar, Location Bar */
+headerbar,
+toolbar,
+.primary-toolbar {
+    background-color: @nord1;
+    color: @nord4;
+    border-bottom: 1px solid @nord2;
+    padding: 4px 6px;
+}
+
+/* Path / Breadcrumb Bar Buttons */
+headerbar button,
+toolbar button,
+.path-bar button {
+    background-color: transparent;
+    color: @nord4;
+    border-radius: 4px;
+    border: none;
+    padding: 4px 8px;
+}
+
+headerbar button:hover,
+toolbar button:hover,
+.path-bar button:hover {
+    background-color: @nord2;
+    color: @nord6;
+}
+
+headerbar button:checked,
+toolbar button:checked,
+.path-bar button:checked {
+    background-color: @nord8;
+    color: @nord0;
+}
+
+/* Text Inputs / Path Entry */
+entry {
+    background-color: @nord1;
+    color: @nord6;
+    border: 1px solid @nord3;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+entry:focus {
+    border-color: @nord8;
+    box-shadow: 0 0 0 1px @nord8;
+}
+
+/* Context Menus & Popovers */
+menu,
+popover {
+    background-color: @nord1;
+    color: @nord4;
+    border: 1px solid @nord3;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+menu menuitem {
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+menu menuitem:hover {
+    background-color: @nord8;
+    color: @nord0;
+}
+
+/* Status Bar */
+statusbar {
+    background-color: @nord1;
+    color: @nord4;
+    border-top: 1px solid @nord2;
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+/* Slim Nord Scrollbars */
+scrollbar {
+    background-color: transparent;
+}
+
+scrollbar slider {
+    background-color: @nord2;
+    border-radius: 6px;
+    min-width: 6px;
+    min-height: 6px;
+}
+
+scrollbar slider:hover {
+    background-color: @nord8;
+}

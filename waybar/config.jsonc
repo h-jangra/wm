@@ -31,8 +31,8 @@
     // Left Modules
     // -------------------------------------------------------------------------
     "clock": {
-        "format": "󰥔 {:%a %-I:%M %p}",
-        "format-alt": "󰥔 {:%Y-%m-%d  %H:%M:%S}",
+        "format": "󰥔 {:%a %I:%M %p}",
+        "format-alt": "󰥔 {:%Y-%m-%d %H:%M:%S}",
         "tooltip-format": "<big>{:%A · %B %d, %Y}</big>\n<tt><small>{calendar}</small></tt>"
     },
 
@@ -41,7 +41,7 @@
         "interval": 2,
         "tooltip": true,
         "tooltip-format": "RAM: {used:0.1f}GiB / {total:0.1f}GiB ({percentage}%)",
-        "on-click": "foot -e htop"
+        "on-click": "footclient -e btop || foot -e btop"
     },
 
     "custom/keyviz": {

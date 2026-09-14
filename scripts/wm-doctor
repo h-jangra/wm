@@ -60,8 +60,12 @@ fi
 # 2. Compositor & Session
 echo ""
 echo "[2] Wayland Compositor & Session"
-if command -v mango >/dev/null 2>&1; then
-    report_ok "MangoWC binary found ($(command -v mango))"
+if command -v mangowc >/dev/null 2>&1 || command -v mango >/dev/null 2>&1; then
+    bin_name="$(command -v mangowc 2>/dev/null || command -v mango 2>/dev/null)"
+    report_ok "MangoWC binary found ($bin_name)"
+    if ! command -v mangowc >/dev/null 2>&1; then
+        report_warn "Command 'mangowc' alias not found (binary is '$bin_name')" "Create link: ln -sf $bin_name ~/.local/bin/mangowc"
+    fi
 else
     report_fail "MangoWC binary not found" "Build or install mangowc via void-packages."
 fi
@@ -82,6 +86,11 @@ if [[ -f /usr/share/wayland-sessions/mango.desktop || -f "$HOME/.local/share/way
     session_path="/usr/share/wayland-sessions/mango.desktop"
     [[ -f "$session_path" ]] || session_path="$HOME/.local/share/wayland-sessions/mango.desktop"
     report_ok "Wayland session entry found ($session_path)"
+    if grep -qE "^Exec=.*dbus-run-session.*mangowc" "$session_path" 2>/dev/null; then
+        report_ok "Session command configured with DBus: $(grep -E '^Exec=' "$session_path")"
+    else
+        report_warn "Session entry does not use 'Exec=dbus-run-session mangowc'" "Update via: sudo cp $REPO_DIR/services/mango.desktop /usr/share/wayland-sessions/"
+    fi
 else
     report_warn "Wayland session entry not installed in /usr/share/wayland-sessions/" "Deploy via: sudo cp $REPO_DIR/services/mango.desktop /usr/share/wayland-sessions/"
 fi
@@ -97,7 +106,7 @@ if command -v waybar >/dev/null 2>&1; then
         report_warn "Dynamic theme palette not generated" "Run: $REPO_DIR/scripts/generate-palette"
     fi
 else
-    report_fail "Waybar not found" "Run: sudo xbps-install -Sy waybar"
+    report_fail "Waybar not found" "Run: sudo xbps-install -Sy Waybar"
 fi
 
 if command -v rofi >/dev/null 2>&1; then
@@ -224,6 +233,12 @@ else
     report_fail "swaybg missing" "Run: sudo xbps-install -Sy swaybg"
 fi
 
+if command -v thunar >/dev/null 2>&1; then
+    report_ok "Thunar file manager found ($(command -v thunar))"
+else
+    report_warn "Thunar file manager not found" "Run: sudo xbps-install -Sy Thunar"
+fi
+
 if [[ -d "$REPO_DIR/wallpapers" && $(find "$REPO_DIR/wallpapers" -type f | wc -l) -gt 0 ]]; then
     report_ok "Curated wallpapers found in wallpapers/"
 else
@@ -251,12 +266,12 @@ if command -v ly >/dev/null 2>&1; then
         report_warn "Ly config not found at /etc/ly/config.ini" "Deploy config: sudo cp $REPO_DIR/ly/config.ini /etc/ly/"
     fi
 
-    if [[ -d /var/service/ly || -L /var/service/ly ]]; then
-        report_ok "Ly runit service is active in /var/service/ly"
-    elif [[ -d /etc/sv/ly ]]; then
-        report_warn "Ly service defined in /etc/sv/ly but not enabled in /var/service/" "Enable: sudo ln -s /etc/sv/ly /var/service/"
+    if [[ -d /var/service/ly || -L /var/service/ly || -d /var/service/ly-runit-service || -L /var/service/ly-runit-service ]]; then
+        report_ok "Ly runit service is active in /var/service/"
+    elif [[ -d /etc/sv/ly || -d /etc/sv/ly-runit-service ]]; then
+        report_warn "Ly service defined in /etc/sv/ but not enabled in /var/service/" "Enable: sudo ln -s /etc/sv/ly /var/service/"
     else
-        report_warn "Ly runit service definition not found in /etc/sv/ly" "See ~/wm/ly/README.md for service setup"
+        report_warn "Ly runit service definition not found in /etc/sv/" "See ~/wm/ly/README.md for service setup"
     fi
 else
     report_warn "Ly display manager not installed (Optional - TTY login active)" "Install Ly for graphical/TUI login (see ly/README.md)"
@@ -264,8 +279,12 @@ fi
 
 # Check for display manager conflicts
 active_dms=()
-for dm in "ly" "sddm" "lightdm" "gdm" "lxdm" "greetd"; do
+for dm in "ly" "ly-runit-service" "sddm" "lightdm" "gdm" "lxdm" "greetd"; do
     if [[ -d "/var/service/$dm" || -L "/var/service/$dm" ]]; then
+        # Avoid counting ly and ly-runit-service as separate competing DMs if both point to same service
+        if [[ "$dm" == "ly-runit-service" ]] && echo "${active_dms[*]}" | grep -qw "ly"; then
+            continue
+        fi
         active_dms+=("$dm")
     fi
 done
@@ -288,6 +307,7 @@ echo "  $(([[ -f /usr/share/wayland-sessions/mango.desktop || -f "$HOME/.local/s
 echo "  $(command -v waybar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Waybar"
 echo "  $(command -v rofi >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Rofi"
 echo "  $(command -v foot >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Foot"
+echo "  $(command -v thunar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Thunar"
 echo "  $(command -v mako >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Mako"
 echo "  $(command -v pipewire >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') PipeWire"
 echo "  $(command -v wireplumber >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') WirePlumber"

@@ -6,13 +6,19 @@
 
 # Core Wayland Compositor & Desktop Shell
 mangowc
-waybar
+# xorg-server-xwayland
+Waybar
 foot
 rofi
 swaybg
 swaylock
 mako
 libnotify
+Thunar
+thunar-archive-plugin
+thunar-volman
+papirus-icon-theme
+tumbler
 
 # Audio Subsystem (PipeWire + WirePlumber)
 pipewire
@@ -25,6 +31,7 @@ NetworkManager
 bluez
 
 # Hardware, Seat & Authentication
+dbus
 brightnessctl
 elogind
 polkit
@@ -36,6 +43,23 @@ slurp
 wl-clipboard
 cliphist
 
-# Utilities & Fonts
+# Utilities, Repositories & Fonts
 jq
-font-awesome
+fzf
+fd
+ripgrep
+xmirror
+
+# Basic CLI Utilities
+unzip
+zip
+tar
+curl
+wget
+git
+tree
+less
+pciutils
+usbutils
+procps-ng
+util-linux

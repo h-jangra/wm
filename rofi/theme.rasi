@@ -4,7 +4,23 @@
 @import "../themes/nord.rasi"
 
 * {
-    font:                        "JetBrainsMono Nerd Font 10";
+    /* Default Nord color definitions if external import is missing */
+    background:                  #2E3440FF;
+    background-alt:              #3B4252FF;
+    background-surface:          #434C5EFF;
+    border-color:                #4C566AFF;
+    foreground:                  #D8DEE9FF;
+    foreground-muted:            #4C566AFF;
+    foreground-bright:           #ECEFF4FF;
+    selected:                    #88C0D0FF;
+    selected-fg:                 #2E3440FF;
+    accent:                      #81A1C1FF;
+    teal:                        #8FBCBBFF;
+    urgent:                      #BF616AFF;
+    active:                      #A3BE8CFF;
+    warning:                     #EBCB8BFF;
+
+    font:                        "Maple Mono, SymbolsNF 10";
     background-color:            transparent;
     text-color:                  @foreground;
 }

@@ -69,6 +69,9 @@ Designed by fusing the clean visual polish of **Omarchy 3** with the lightweight
 │   ├── brightness              # Hardware brightness handler (brightnessctl) with OSD notifications
 │   ├── wallpaper-manager       # Lightweight swaybg manager with auto palette update and Waybar reload
 │   ├── audio-check             # PipeWire & WirePlumber verification and troubleshooting tool
+│   ├── fix-audio               # One-click diagnostic & repair tool for PipeWire, ALSA, and user groups
+│   ├── fix-dbus                # One-click diagnostic & repair tool for DBus system service & machine-id
+│   ├── fix-bluetooth           # One-click diagnostic & repair tool for BlueZ daemon, group & rfkill
 │   ├── mango-tags-waybar       # Waybar JSON tag stream from MangoWC mmsg (compact Noctalia pills)
 │   ├── mango-window-waybar     # Waybar JSON active window title stream from mmsg
 │   └── wm-doctor               # Full system diagnostic health checker
@@ -101,22 +104,29 @@ cd ~/wm
 ./install.sh
 ```
 
-Or configure with the optional Ly login manager directly:
+Or configure with flags (e.g. unattended mode, mirror selection, or Ly login manager):
 ```bash
-./install.sh --login-manager ly
+./install.sh -y --login-manager ly
+# Or launch xmirror to pick a regional/community mirror:
+./install.sh --mirror
+
+# Or run dedicated subsystem repair modules directly:
+./install.sh --fix-audio
+./install.sh --fix-dbus
+./install.sh --fix-bluetooth
 ```
 
 The installer will:
 1. Verify that your system is Void Linux.
-2. Check and install missing packages from `packages.void` using `xbps-install`.
-3. Enable essential `runit` services (`dbus`, `elogind`, `NetworkManager`, `bluetoothd`, `polkitd`).
-4. Add your user to the `video`, `audio`, `input`, `network`, and `bluetooth` groups.
-5. Back up existing configurations to `~/.config/wm-backups-<timestamp>/`.
-6. Symlink repository configurations to `~/.config/`.
-7. Install bundled icon fonts to `~/.local/share/fonts/wm/` and refresh `fc-cache`.
-8. Verify Wayland session file `/usr/share/wayland-sessions/mango.desktop` (provided automatically when installing `mangowc`, with fallback in `services/mango.desktop`).
-9. Link all desktop utility scripts and helpers into `/usr/local/bin/`.
-10. Optionally deploy and configure Ly if requested.
+2. Ensure official Void extra repositories (`void-repo-nonfree`, `void-repo-multilib`, `void-repo-multilib-nonfree`) and `xmirror` are enabled, and sync XBPS indexes.
+3. Accurately detect and install all missing packages from `packages.void` using `xbps-install`.
+4. Enable essential `runit` services (`dbus`, `elogind`, `NetworkManager`, `bluetoothd`, `polkitd`) and disable conflicting daemons (`dhcpcd`, `wpa_supplicant`).
+5. Add your user to hardware groups (`video`, `audio`, `input`, `network`, `bluetooth`).
+6. Idempotently symlink configurations to `~/.config/` without generating redundant backups.
+7. Install icon fonts to `~/.local/share/fonts/wm/` and update `fc-cache`.
+8. Ensure Wayland session entry `/usr/share/wayland-sessions/mango.desktop` is present.
+9. Link all desktop utility scripts and helpers into `/usr/local/bin/` and `~/.local/bin/`.
+10. Optionally configure or compile Ly DM, create its runit service and PAM configuration, and resolve TTY2 conflicts.
 11. Execute `scripts/wm-doctor` to verify your environment.
 
 ---
@@ -155,23 +165,21 @@ cd ~/wm
 ```
 
 #### Manual Setup
-1. **Install Ly on Void**:
+1. **Build & Install Ly**:
    ```bash
-   # Check binary availability
-   sudo xbps-install -Sy ly 2>/dev/null || {
-       # If building via void-packages
-       git clone --depth=1 https://github.com/void-linux/void-packages.git
-       cd void-packages && ./xbps-src binary-bootstrap && ./xbps-src pkg ly
-       sudo xbps-install --repository hostdir/binpkgs ly
-   }
+   sudo xbps-install -Sy git zig pam-devel libxcb-devel make
+   git clone --depth 1 https://github.com/fairyglade/ly.git
+   cd ly
+   zig build -Doptimize=ReleaseFast
+   sudo zig build installnoconf -Dinit_system=runit -Doptimize=ReleaseFast
    ```
 2. **Deploy Configuration & Session File**:
    ```bash
    sudo mkdir -p /etc/ly
    sudo cp ~/wm/ly/config.ini /etc/ly/config.ini
-   # mango.desktop is created automatically when mangowc is installed.
-   # If missing, deploy the repository fallback template:
-   [ ! -f /usr/share/wayland-sessions/mango.desktop ] && sudo cp ~/wm/services/mango.desktop /usr/share/wayland-sessions/
+   # Deploy repository mango.desktop template (configured with dbus-run-session mangowc):
+   sudo mkdir -p /usr/share/wayland-sessions
+   sudo cp ~/wm/services/mango.desktop /usr/share/wayland-sessions/
    ```
 3. **Enable Runit Service**:
    ```bash
@@ -236,6 +244,7 @@ All primary desktop shortcuts use the **Super** key:
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
 | `Super + Return` | **Terminal** | Launches Foot terminal |
+| `Super + E` | **File Manager** | Launches Thunar file manager |
 | `Super + D` | **App Launcher** | Opens Rofi application launcher |
 | `Super + Space`| **App Launcher** | Alternative launcher shortcut |
 | `Super + Q` | **Close Window** | Closes the focused application (`killclient`) |
@@ -319,6 +328,21 @@ It validates:
 - Group permissions (`video`, `audio`, `input`).
 - Typography and icon fonts.
 - Login manager status (Ly) and detects conflicting multiple display managers.
+
+### One-Click Subsystem Fixers
+
+If you encounter issues with audio, DBus, or Bluetooth, dedicated fix modules are available directly or via `install.sh`:
+
+```bash
+# Audio: Install packages, configure ALSA PipeWire routing, add audio group, clean sockets, restart daemons:
+./install.sh --fix-audio       # or directly: ~/wm/scripts/fix-audio
+
+# DBus: Install dbus, ensure machine-id, enable & restart runit service, verify session bus:
+./install.sh --fix-dbus        # or directly: ~/wm/scripts/fix-dbus
+
+# Bluetooth: Install bluez, enable runit service, configure AutoEnable, add bluetooth group, unblock rfkill:
+./install.sh --fix-bluetooth   # or directly: ~/wm/scripts/fix-bluetooth
+```
 
 ### Audio Stack Troubleshooting
 If you encounter no sound or missing devices:

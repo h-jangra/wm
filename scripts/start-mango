@@ -21,6 +21,7 @@ export GDK_BACKEND="wayland,x11,*"
 export CLUTTER_BACKEND=wayland
 export SDL_VIDEODRIVER=wayland
 export _JAVA_AWT_WM_NONREPARENTING=1
+export NO_AT_BRIDGE=1
 
 # Ensure XDG Runtime Directory exists
 if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then

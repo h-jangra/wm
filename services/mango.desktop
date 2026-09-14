@@ -3,6 +3,6 @@ Encoding=UTF-8
 Name=Mango
 DesktopNames=mango;wlroots
 Comment=MangoWC Wayland Compositor
-Exec=mango
+Exec=dbus-run-session mangowc
 Icon=mango
 Type=Application

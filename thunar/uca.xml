@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Foot Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1700000000000001-1</unique-id>
+	<command>foot -D %f</command>
+	<description>Open Foot terminal in the current directory</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>preferences-desktop-wallpaper</icon>
+	<name>Set as Wallpaper</name>
+	<submenu></submenu>
+	<unique-id>1700000000000002-1</unique-id>
+	<command>wallpaper-manager %f</command>
+	<description>Set selected image as active wallpaper and generate dynamic theme</description>
+	<range></range>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.gif;*.bmp</patterns>
+	<image-files/>
+</action>
+<action>
+	<icon>text-editor</icon>
+	<name>Edit in Terminal Editor</name>
+	<submenu></submenu>
+	<unique-id>1700000000000003-1</unique-id>
+	<command>foot -e nvim %f</command>
+	<description>Open selected file with Neovim in Foot terminal</description>
+	<range></range>
+	<patterns>*</patterns>
+	<text-files/>
+	<other-files/>
+</action>
+</actions>

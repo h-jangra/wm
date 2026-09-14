@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# fix-bluetooth: Diagnostic and automatic repair tool for BlueZ Bluetooth stack
+# Designed for Void Linux runit systems running MangoWC / Wayland.
+# Configures packages, user groups, runit service, rfkill, and power states.
+# ==============================================================================
+set -euo pipefail
+
+BOLD="\033[1m"
+GREEN="\033[32m"
+BLUE="\033[34m"
+YELLOW="\033[33m"
+RED="\033[31m"
+RESET="\033[0m"
+
+msg_info() { echo -e "${BLUE}[INFO]${RESET} $*"; }
+msg_ok()   { echo -e "${GREEN}[OK]${RESET} $*"; }
+msg_warn() { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+msg_err()  { echo -e "${RED}[ERROR]${RESET} $*"; }
+
+echo -e "${BOLD}==> Diagnosing and Repairing Bluetooth Subsystem (BlueZ)...${RESET}"
+
+CURRENT_USER="${USER:-$(id -un)}"
+
+# 1. Package verification
+missing_pkgs=()
+for pkg in bluez libspa-bluetooth; do
+    if command -v xbps-query >/dev/null 2>&1; then
+        if ! xbps-query -s "$pkg" 2>/dev/null | grep -q "^\[\*\]"; then
+            missing_pkgs+=("$pkg")
+        fi
+    fi
+done
+
+if [[ ${#missing_pkgs[@]} -gt 0 ]]; then
+    msg_info "Installing missing Bluetooth packages: ${missing_pkgs[*]}..."
+    if sudo xbps-install -y "${missing_pkgs[@]}"; then
+        msg_ok "Bluetooth packages installed."
+    else
+        msg_warn "Could not install packages (requires sudo)."
+    fi
+else
+    msg_ok "Essential Bluetooth packages are installed (bluez, libspa-bluetooth)."
+fi
+
+# 2. Hardware permissions (bluetooth group)
+if getent group bluetooth >/dev/null 2>&1; then
+    if id -nG "$CURRENT_USER" | grep -qw "bluetooth"; then
+        msg_ok "User '$CURRENT_USER' is in 'bluetooth' group."
+    else
+        msg_info "Adding '$CURRENT_USER' to 'bluetooth' group..."
+        if sudo usermod -aG bluetooth "$CURRENT_USER"; then
+            msg_ok "User '$CURRENT_USER' added to 'bluetooth' group."
+        else
+            msg_warn "Could not add user to bluetooth group (requires sudo)."
+        fi
+    fi
+fi
+
+# 3. System runit service
+if [[ -d /etc/sv/bluetoothd ]]; then
+    if [[ ! -e /var/service/bluetoothd && ! -L /var/service/bluetoothd ]]; then
+        msg_info "Enabling bluetoothd runit service (/var/service/bluetoothd)..."
+        if sudo ln -sf /etc/sv/bluetoothd /var/service/ 2>/dev/null; then
+            msg_ok "Enabled /var/service/bluetoothd."
+            sleep 0.5
+        else
+            msg_warn "Could not enable /var/service/bluetoothd (requires sudo)."
+        fi
+    else
+        msg_ok "Bluetoothd runit service is linked in /var/service/."
+    fi
+
+    # Restart / start service if not running
+    if ! pgrep -x bluetoothd >/dev/null 2>&1; then
+        msg_info "Starting bluetoothd system service..."
+        sudo sv up bluetoothd 2>/dev/null || sudo sv restart bluetoothd 2>/dev/null || true
+        sleep 0.5
+    fi
+else
+    msg_warn "Service definition /etc/sv/bluetoothd not found."
+fi
+
+# 4. AutoEnable policy configuration in /etc/bluetooth/main.conf
+if [[ -f /etc/bluetooth/main.conf ]]; then
+    if grep -qE "^\s*#?\s*AutoEnable\s*=" /etc/bluetooth/main.conf; then
+        sudo sed -i -E 's/^\s*#?\s*AutoEnable\s*=.*/AutoEnable = true/' /etc/bluetooth/main.conf 2>/dev/null || true
+        msg_ok "Configured AutoEnable=true in /etc/bluetooth/main.conf."
+    fi
+fi
+
+# 5. Unblock radio in rfkill
+if command -v rfkill >/dev/null 2>&1; then
+    sudo rfkill unblock bluetooth 2>/dev/null || rfkill unblock bluetooth 2>/dev/null || true
+    msg_ok "Unblocked Bluetooth devices in rfkill."
+fi
+
+# 6. Power on adapter
+if command -v bluetoothctl >/dev/null 2>&1; then
+    bluetoothctl power on >/dev/null 2>&1 || true
+    msg_ok "Sent power on signal via bluetoothctl."
+fi
+
+# 7. Final verification
+if pgrep -x bluetoothd >/dev/null 2>&1; then
+    echo ""
+    msg_ok "${BOLD}Bluetooth subsystem repair complete: bluetoothd daemon is active!${RESET}"
+    exit 0
+else
+    echo ""
+    msg_err "Bluetooth daemon failed to start. Ensure Bluetooth hardware is present and not hard-blocked."
+    exit 1
+fi

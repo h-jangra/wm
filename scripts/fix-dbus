@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# fix-dbus: Diagnostic and automatic repair tool for DBus IPC subsystem
+# Designed for Void Linux runit systems running MangoWC / Wayland.
+# Configures packages, machine-id, runit service, and session bus socket.
+# ==============================================================================
+set -euo pipefail
+
+BOLD="\033[1m"
+GREEN="\033[32m"
+BLUE="\033[34m"
+YELLOW="\033[33m"
+RED="\033[31m"
+RESET="\033[0m"
+
+msg_info() { echo -e "${BLUE}[INFO]${RESET} $*"; }
+msg_ok()   { echo -e "${GREEN}[OK]${RESET} $*"; }
+msg_warn() { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+msg_err()  { echo -e "${RED}[ERROR]${RESET} $*"; }
+
+echo -e "${BOLD}==> Diagnosing and Repairing DBus Subsystem...${RESET}"
+
+# 1. Package verification
+if command -v xbps-query >/dev/null 2>&1; then
+    if ! xbps-query -s dbus 2>/dev/null | grep -q "^\[\*\]"; then
+        msg_info "Installing missing dbus package..."
+        if sudo xbps-install -y dbus; then
+            msg_ok "dbus package installed."
+        else
+            msg_warn "Could not install dbus package (requires sudo)."
+        fi
+    else
+        msg_ok "dbus package is installed."
+    fi
+fi
+
+# 2. Machine ID synchronization
+# Missing /etc/machine-id causes DBus, elogind, and portals to fail silently
+if [[ ! -f /var/lib/dbus/machine-id && ! -f /etc/machine-id ]]; then
+    msg_info "Generating machine-id..."
+    sudo dbus-uuidgen --ensure=/etc/machine-id 2>/dev/null || true
+fi
+
+if [[ -f /var/lib/dbus/machine-id && ! -f /etc/machine-id ]]; then
+    if sudo ln -sf /var/lib/dbus/machine-id /etc/machine-id 2>/dev/null; then
+        msg_ok "Synchronized /etc/machine-id -> /var/lib/dbus/machine-id."
+    fi
+elif [[ -f /etc/machine-id && ! -f /var/lib/dbus/machine-id ]]; then
+    sudo mkdir -p /var/lib/dbus 2>/dev/null || true
+    if sudo ln -sf /etc/machine-id /var/lib/dbus/machine-id 2>/dev/null; then
+        msg_ok "Synchronized /var/lib/dbus/machine-id -> /etc/machine-id."
+    fi
+else
+    msg_ok "System machine-id is present."
+fi
+
+# 3. System runit service
+if [[ -d /etc/sv/dbus ]]; then
+    if [[ ! -e /var/service/dbus && ! -L /var/service/dbus ]]; then
+        msg_info "Enabling DBus runit service (/var/service/dbus)..."
+        if sudo ln -sf /etc/sv/dbus /var/service/ 2>/dev/null; then
+            msg_ok "Enabled /var/service/dbus."
+            sleep 0.5
+        else
+            msg_warn "Could not enable /var/service/dbus (requires sudo)."
+        fi
+    else
+        msg_ok "DBus runit service is linked in /var/service/."
+    fi
+
+    # Restart / verify system bus if not running
+    if ! pgrep -x dbus-daemon >/dev/null 2>&1; then
+        msg_info "Starting DBus system service..."
+        sudo sv up dbus 2>/dev/null || sudo sv restart dbus 2>/dev/null || true
+        sleep 0.5
+    fi
+else
+    msg_warn "Service definition /etc/sv/dbus not found. Ensure dbus package is intact."
+fi
+
+# 4. User runtime directory
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+mkdir -p "$RUNTIME_DIR"
+chmod 0700 "$RUNTIME_DIR" 2>/dev/null || true
+export XDG_RUNTIME_DIR="$RUNTIME_DIR"
+
+# 5. Session Bus validation
+session_ok=0
+if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    if command -v dbus-send >/dev/null 2>&1; then
+        if dbus-send --session --dest=org.freedesktop.DBus --type=method_call --print-reply /org/freedesktop/DBus org.freedesktop.DBus.ListNames >/dev/null 2>&1; then
+            session_ok=1
+        fi
+    fi
+elif [[ -S "$RUNTIME_DIR/bus" ]]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$RUNTIME_DIR/bus"
+    session_ok=1
+fi
+
+if [[ $session_ok -eq 1 ]]; then
+    msg_ok "User session bus is active (${DBUS_SESSION_BUS_ADDRESS:-unix:path=$RUNTIME_DIR/bus})."
+else
+    msg_info "Note: User session bus is created per-login (via start-mango / dbus-run-session)."
+fi
+
+# 6. Final verification
+if pgrep -x dbus-daemon >/dev/null 2>&1 || pgrep -x dbus-broker >/dev/null 2>&1; then
+    echo ""
+    msg_ok "${BOLD}DBus subsystem repair complete: System bus is active!${RESET}"
+    exit 0
+else
+    echo ""
+    msg_err "DBus system daemon is not active. Check /var/log/socklog/daemon or dmesg."
+    exit 1
+fi
