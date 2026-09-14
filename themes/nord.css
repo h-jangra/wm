@@ -1,0 +1,25 @@
+/* Nord Color Palette - CSS Variables */
+@define-color bg #2E3440;
+@define-color bg_alt #3B4252;
+@define-color bg_surface #434C5E;
+@define-color border #4C566A;
+
+@define-color fg #D8DEE9;
+@define-color fg_dim #4C566A;
+@define-color fg_bright #ECEFF4;
+
+@define-color accent #88C0D0;
+@define-color accent_alt #81A1C1;
+@define-color teal #8FBCBB;
+@define-color dark_blue #5E81AC;
+
+@define-color red #BF616A;
+@define-color orange #D08770;
+@define-color yellow #EBCB8B;
+@define-color green #A3BE8C;
+@define-color purple #B48EAD;
+
+/* Translucent variants */
+@define-color bg_translucent rgba(46, 52, 64, 0.88);
+@define-color bg_alt_translucent rgba(59, 66, 82, 0.85);
+@define-color accent_translucent rgba(136, 192, 208, 0.20);

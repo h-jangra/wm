@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-launcher: Keyboard-first application launcher
+# ==============================================================================
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+REPO_DIR="$HOME/wm/rofi"
+
+if [[ -f "$CONF_DIR/launcher.rasi" ]]; then
+    RASI="$CONF_DIR/launcher.rasi"
+elif [[ -f "$REPO_DIR/launcher.rasi" ]]; then
+    RASI="$REPO_DIR/launcher.rasi"
+else
+    RASI=""
+fi
+
+if [[ -n "$RASI" ]]; then
+    exec rofi -show drun -theme "$RASI"
+else
+    exec rofi -show drun
+fi

@@ -1,0 +1,23 @@
+/**
+ * Dynamic Wallpaper Theme Tokens for Rofi
+ **/
+* {
+    capsule-bg: #212328FF;
+    capsule-hover: #32353dFF;
+    capsule-fg: #D8DEE9FF;
+    border-color: #41444cFF;
+    clock-color: #f2a9e6FF;
+    ram-color: #cea2efFF;
+    keyviz-color: #96ead6FF;
+    recorder-color: #e0aa8bFF;
+    ws-focused: #9fbbf4FF;
+    ws-occupied: #ab99dbFF;
+    ws-empty: #9ce0e5FF;
+    ws-urgent: #D894A1FF;
+    bt-color: #bc9feaFF;
+    net-color: #a4f497FF;
+    vol-color: #ea98abFF;
+    bat-color: #8be0b2FF;
+    session-color: #f2938cFF;
+    accent: #96b4f2FF;
+}

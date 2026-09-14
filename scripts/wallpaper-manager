@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# wallpaper-manager: Lightweight Wayland wallpaper daemon manager using swaybg
+# Guarantees single active swaybg process and dynamic Waybar palette reload.
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WALLPAPER_DIR="${SCRIPT_DIR}/../wallpapers"
+USER_WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/current_wallpaper"
+
+notify() {
+    notify-send -h string:x-canonical-private-synchronous:wm-wall "Wallpaper" "$1"
+}
+
+cmd="${1:-restore}"
+
+case "$cmd" in
+    set)
+        target="${2:-}"
+        if [[ -z "$target" || ! -f "$target" ]]; then
+            echo "Error: Wallpaper file not found: '$target'" >&2
+            exit 1
+        fi
+
+        # 1. Update dynamic color palette from wallpaper
+        if [[ -x "$SCRIPT_DIR/generate-palette" ]]; then
+            "$SCRIPT_DIR/generate-palette" "$target" >/dev/null 2>&1 || true
+        fi
+
+        # 2. Launch new swaybg instance
+        if command -v swaybg >/dev/null 2>&1; then
+            swaybg -i "$target" -m fill >/dev/null 2>&1 &
+            new_pid=$!
+            sleep 0.15
+
+            # Kill previous swaybg instances to avoid memory leaks
+            for pid in $(pgrep -x swaybg || true); do
+                if [[ "$pid" -ne "$new_pid" ]]; then
+                    kill "$pid" >/dev/null 2>&1 || true
+                fi
+            done
+        else
+            notify "Warning: swaybg is not installed."
+        fi
+
+        mkdir -p "$(dirname "$CACHE_FILE")"
+        echo "$target" > "$CACHE_FILE"
+
+        # 3. Dynamically reload Waybar styles with new wallpaper palette
+        pkill -USR2 waybar 2>/dev/null || true
+
+        notify "Wallpaper updated: $(basename "$target")"
+        ;;
+
+    restore)
+        if [[ -f "$CACHE_FILE" ]]; then
+            cached=$(cat "$CACHE_FILE")
+            if [[ -f "$cached" ]]; then
+                exec "$0" set "$cached"
+            fi
+        fi
+
+        # Default fallback to repository wallpapers
+        if [[ -f "$WALLPAPER_DIR/nord.jpg" ]]; then
+            exec "$0" set "$WALLPAPER_DIR/nord.jpg"
+        elif [[ -d "$WALLPAPER_DIR" ]]; then
+            first_found=$(find "$WALLPAPER_DIR" -type f \( -name "*.jpg" -o -name "*.png" \) | head -n1 || true)
+            if [[ -n "$first_found" ]]; then
+                exec "$0" set "$first_found"
+            fi
+        fi
+        ;;
+
+    random)
+        search_dirs=("$WALLPAPER_DIR")
+        if [[ -d "$USER_WALLPAPER_DIR" ]]; then
+            search_dirs+=("$USER_WALLPAPER_DIR")
+        fi
+
+        random_file=$(find "${search_dirs[@]}" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" \) 2>/dev/null | shuf -n1 || true)
+        if [[ -n "$random_file" ]]; then
+            exec "$0" set "$random_file"
+        else
+            notify "No wallpapers found in ${WALLPAPER_DIR}"
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 {set <path>|restore|random}"
+        exit 1
+        ;;
+esac

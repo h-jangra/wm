@@ -1,0 +1,21 @@
+/**
+ * Rofi Power Menu Theme
+ **/
+
+@import "theme.rasi"
+
+window {
+    width:                       340px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       5;
+    columns:                     1;
+    spacing:                     6px;
+}
+
+inputbar {
+    enabled:                     false;
+}

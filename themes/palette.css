@@ -1,0 +1,19 @@
+/* Dynamic Wallpaper Theme Tokens */
+@define-color capsule_bg #212328;
+@define-color capsule_hover #32353d;
+@define-color capsule_fg #D8DEE9;
+@define-color border_color #41444c;
+@define-color clock_color #f2a9e6;
+@define-color ram_color #cea2ef;
+@define-color keyviz_color #96ead6;
+@define-color recorder_color #e0aa8b;
+@define-color ws_focused #9fbbf4;
+@define-color ws_occupied #ab99db;
+@define-color ws_empty #9ce0e5;
+@define-color ws_urgent #D894A1;
+@define-color bt_color #bc9fea;
+@define-color net_color #a4f497;
+@define-color vol_color #ea98ab;
+@define-color bat_color #8be0b2;
+@define-color session_color #f2938c;
+@define-color accent #96b4f2;

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-wallpaper: Interactive Wallpaper Selector for Rofi
+# Lists wallpapers from ~/wm/wallpapers and user directories, with randomizer.
+# ==============================================================================
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$SCRIPT_DIR/../rofi"
+WALLPAPER_DIR="$SCRIPT_DIR/../wallpapers"
+USER_WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+
+if [[ -f "$CONF_DIR/wallpaper.rasi" ]]; then
+    RASI="$CONF_DIR/wallpaper.rasi"
+elif [[ -f "$REPO_DIR/wallpaper.rasi" ]]; then
+    RASI="$REPO_DIR/wallpaper.rasi"
+else
+    RASI=""
+fi
+
+search_dirs=("$WALLPAPER_DIR")
+if [[ -d "$USER_WALLPAPER_DIR" ]]; then
+    search_dirs+=("$USER_WALLPAPER_DIR")
+fi
+
+menu_content="🎲  Random Wallpaper\n"
+
+declare -A file_map
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    bname=$(basename "$file")
+    menu_content="${menu_content}󰸉  ${bname}\n"
+    file_map["$bname"]="$file"
+done < <(find "${search_dirs[@]}" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" \) 2>/dev/null | sort -u)
+
+chosen=$(printf "%b" "$menu_content" | rofi -dmenu -p "Wallpapers" ${RASI:+-theme "$RASI"})
+
+[[ -z "$chosen" ]] && exit 0
+
+if [[ "$chosen" == *"Random Wallpaper"* ]]; then
+    "$SCRIPT_DIR/wallpaper-manager" random
+    exit 0
+fi
+
+clean_name=$(echo "$chosen" | sed -E 's/^[󰸉]  //' | xargs)
+
+if [[ -n "${file_map["$clean_name"]:-}" ]]; then
+    "$SCRIPT_DIR/wallpaper-manager" set "${file_map["$clean_name"]}"
+fi

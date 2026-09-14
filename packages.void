@@ -1,0 +1,41 @@
+# ==============================================================================
+# Void Linux Package List for Custom MangoWC Rice
+# Minimal, essential dependencies without bloat or duplicate daemons.
+# Install via: sudo xbps-install -Sy $(grep -vE '^\s*#|^\s*$' packages.void)
+# ==============================================================================
+
+# Core Wayland Compositor & Desktop Shell
+mangowc
+waybar
+foot
+rofi
+swaybg
+swaylock
+mako
+libnotify
+
+# Audio Subsystem (PipeWire + WirePlumber)
+pipewire
+wireplumber
+alsa-pipewire
+libspa-bluetooth
+
+# Networking & Bluetooth
+NetworkManager
+bluez
+
+# Hardware, Seat & Authentication
+brightnessctl
+elogind
+polkit
+polkit-gnome
+
+# Screen Capture & Clipboard Management
+grim
+slurp
+wl-clipboard
+cliphist
+
+# Utilities & Fonts
+jq
+font-awesome

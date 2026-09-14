@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-bluetooth: Interactive BlueZ Bluetooth Manager for Rofi
+# Provides scan, pair, trust, connect, disconnect, and power controls cleanly.
+# ==============================================================================
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$SCRIPT_DIR/../rofi"
+
+if [[ -f "$CONF_DIR/bluetooth.rasi" ]]; then
+    RASI="$CONF_DIR/bluetooth.rasi"
+elif [[ -f "$REPO_DIR/bluetooth.rasi" ]]; then
+    RASI="$REPO_DIR/bluetooth.rasi"
+else
+    RASI=""
+fi
+
+notify() {
+    notify-send -h string:x-canonical-private-synchronous:wm-bt "Bluetooth" "$1"
+}
+
+if ! command -v bluetoothctl >/dev/null 2>&1; then
+    notify "Error: BlueZ (bluetoothctl) is not installed."
+    exit 1
+fi
+
+# Check controller status
+bt_show=$(bluetoothctl show 2>&1 || true)
+if echo "$bt_show" | grep -qi "No default controller"; then
+    notify "No Bluetooth controller detected or daemon not running."
+    exit 1
+fi
+
+power_status=$(echo "$bt_show" | grep "Powered:" | awk '{print $2}' || echo "no")
+
+if [[ "$power_status" != "yes" ]]; then
+    choice=$(printf "󰂯  Power On Bluetooth\n" | rofi -dmenu -p "Bluetooth (Off)" ${RASI:+-theme "$RASI"})
+    if [[ "$choice" == "󰂯  Power On Bluetooth" ]]; then
+        bluetoothctl power on
+        notify "Bluetooth controller powered on"
+    fi
+    exit 0
+fi
+
+# Build device list
+menu_header="󰂲  Power Off Bluetooth\n󰑐  Scan for Nearby Devices (5s)\n--- Paired Devices ---"
+
+declare -A entry_to_mac
+declare -A entry_to_name
+declare -A entry_to_status
+
+# 1. Paired Devices
+paired_raw=$(bluetoothctl devices Paired 2>/dev/null || true)
+paired_entries=""
+
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    mac=$(echo "$line" | awk '{print $2}')
+    name=$(echo "$line" | cut -d' ' -f3-)
+    [[ -z "$name" ]] && name="Unknown ($mac)"
+
+    info=$(bluetoothctl info "$mac" 2>/dev/null || true)
+    is_conn="no"
+    if echo "$info" | grep -q "Connected: yes"; then
+        is_conn="yes"
+        entry="󰂱  ${name} [Connected] (${mac})"
+    else
+        entry="󰂯  ${name} (${mac})"
+    fi
+
+    paired_entries="${paired_entries}\n${entry}"
+    entry_to_mac["$entry"]="$mac"
+    entry_to_name["$entry"]="$name"
+    entry_to_status["$entry"]="$is_conn"
+done <<< "$paired_raw"
+
+# 2. All other Discovered Devices
+all_raw=$(bluetoothctl devices 2>/dev/null || true)
+discovered_entries=""
+
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    mac=$(echo "$line" | awk '{print $2}')
+    name=$(echo "$line" | cut -d' ' -f3-)
+    [[ -z "$name" ]] && name="Unknown ($mac)"
+
+    # Skip if already in paired list
+    if echo "$paired_raw" | grep -q "$mac"; then
+        continue
+    fi
+
+    entry="󰂲  ${name} [Unpaired] (${mac})"
+    discovered_entries="${discovered_entries}\n${entry}"
+    entry_to_mac["$entry"]="$mac"
+    entry_to_name["$entry"]="$name"
+    entry_to_status["$entry"]="unpaired"
+done <<< "$all_raw"
+
+menu_content="$(printf "%b%b" "$menu_header" "$paired_entries")"
+if [[ -n "$discovered_entries" ]]; then
+    menu_content="${menu_content}\n--- Discovered Devices ---${discovered_entries}"
+fi
+
+chosen=$(printf "%b" "$menu_content" | rofi -dmenu -p "Bluetooth" ${RASI:+-theme "$RASI"})
+
+[[ -z "$chosen" ]] && exit 0
+
+if [[ "$chosen" == *"Power Off Bluetooth"* ]]; then
+    bluetoothctl power off
+    notify "Bluetooth powered off"
+    exit 0
+elif [[ "$chosen" == *"Scan for Nearby Devices"* ]]; then
+    notify "Scanning for Bluetooth devices (5s)..."
+    bluetoothctl --timeout 5 scan on >/dev/null 2>&1 || true
+    exec "$0"
+elif [[ "$chosen" == "---"* ]]; then
+    exec "$0"
+fi
+
+mac="${entry_to_mac["$chosen"]:-}"
+name="${entry_to_name["$chosen"]:-}"
+status="${entry_to_status["$chosen"]:-}"
+
+if [[ -z "$mac" ]]; then
+    # Fallback to regex extraction
+    mac=$(echo "$chosen" | grep -oE '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' || true)
+    name="Device"
+fi
+
+[[ -z "$mac" ]] && exit 0
+
+if [[ "$status" == "yes" ]]; then
+    action=$(printf "󰂲  Disconnect\n󰅖  Remove / Unpair\n" | rofi -dmenu -p "Action: ${name}" ${RASI:+-theme "$RASI"})
+    if [[ "$action" == *"Disconnect"* ]]; then
+        notify "Disconnecting from ${name}..."
+        if bluetoothctl disconnect "$mac"; then
+            notify "Disconnected from ${name}"
+        else
+            notify "Failed to disconnect from ${name}"
+        fi
+    elif [[ "$action" == *"Remove"* ]]; then
+        if bluetoothctl remove "$mac"; then
+            notify "Removed ${name}"
+        else
+            notify "Failed to remove ${name}"
+        fi
+    fi
+elif [[ "$status" == "no" ]]; then
+    action=$(printf "󰂱  Connect\n󰅖  Remove / Unpair\n" | rofi -dmenu -p "Action: ${name}" ${RASI:+-theme "$RASI"})
+    if [[ "$action" == *"Connect"* ]]; then
+        notify "Connecting to ${name}..."
+        if bluetoothctl connect "$mac"; then
+            notify "Connected to ${name}"
+        else
+            notify "Failed to connect to ${name}. Ensure it is turned on."
+        fi
+    elif [[ "$action" == *"Remove"* ]]; then
+        if bluetoothctl remove "$mac"; then
+            notify "Removed ${name}"
+        else
+            notify "Failed to remove ${name}"
+        fi
+    fi
+else
+    # Unpaired device
+    action=$(printf "󰂱  Pair & Connect\n󰅖  Cancel\n" | rofi -dmenu -p "Pair: ${name}" ${RASI:+-theme "$RASI"})
+    if [[ "$action" == *"Pair & Connect"* ]]; then
+        notify "Pairing with ${name}..."
+        if bluetoothctl pair "$mac" && bluetoothctl trust "$mac" && bluetoothctl connect "$mac"; then
+            notify "Successfully paired and connected to ${name}"
+        else
+            notify "Failed to pair with ${name}. Ensure it is in pairing mode."
+        fi
+    fi
+fi

@@ -1,0 +1,93 @@
+/**
+ * Unified Nord Theme for Rofi Menus
+ **/
+@import "../themes/nord.rasi"
+
+* {
+    font:                        "JetBrainsMono Nerd Font 10";
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+window {
+    transparency:                "real";
+    background-color:            @background;
+    border:                      1px solid;
+    border-color:                @selected;
+    border-radius:               8px;
+    padding:                     15px;
+}
+
+mainbox {
+    spacing:                     10px;
+    children:                    [ "inputbar", "message", "listview" ];
+}
+
+inputbar {
+    spacing:                     10px;
+    padding:                     8px 12px;
+    background-color:            @background-alt;
+    border-radius:               6px;
+    children:                    [ "prompt", "entry" ];
+}
+
+prompt {
+    text-color:                  @selected;
+    font-weight:                 bold;
+}
+
+entry {
+    placeholder:                 "Search...";
+    placeholder-color:           @foreground-muted;
+    text-color:                  @foreground-bright;
+}
+
+listview {
+    lines:                       8;
+    columns:                     1;
+    cycle:                       true;
+    scrollbar:                   false;
+    spacing:                     4px;
+}
+
+element {
+    padding:                     8px 12px;
+    border-radius:               6px;
+    spacing:                     10px;
+}
+
+element normal.normal {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element selected.normal {
+    background-color:            @selected;
+    text-color:                  @selected-fg;
+}
+
+element alternate.normal {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element-icon {
+    size:                        20px;
+    cursor:                      inherit;
+}
+
+element-text {
+    cursor:                      inherit;
+    vertical-align:              0.5;
+}
+
+message {
+    padding:                     8px 12px;
+    background-color:            @background-alt;
+    border-radius:               6px;
+}
+
+textbox {
+    text-color:                  @accent;
+    vertical-align:              0.5;
+}

@@ -1,0 +1,20 @@
+/**
+ * Rofi Application Launcher Theme
+ **/
+
+@import "theme.rasi"
+
+window {
+    width:                       550px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       8;
+    columns:                     1;
+}
+
+entry {
+    placeholder:                 "Search applications...";
+}

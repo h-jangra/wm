@@ -1,0 +1,21 @@
+/**
+ * Rofi Wallpaper Selector Theme
+ **/
+
+@import "theme.rasi"
+
+window {
+    width:                       550px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       6;
+    columns:                     1;
+    spacing:                     6px;
+}
+
+entry {
+    placeholder:                 "Select wallpaper or randomize...";
+}

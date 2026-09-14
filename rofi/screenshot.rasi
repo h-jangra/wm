@@ -1,0 +1,21 @@
+/**
+ * Rofi Screenshot Menu Theme
+ **/
+
+@import "theme.rasi"
+
+window {
+    width:                       360px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       4;
+    columns:                     1;
+    spacing:                     6px;
+}
+
+inputbar {
+    enabled:                     false;
+}

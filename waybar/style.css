@@ -1,0 +1,144 @@
+/* Waybar Style Sheet - Noctalia Capsule / Pill Layout */
+
+@import "../themes/palette.css";
+
+/* Fallback color definitions if palette.css is not yet generated */
+@define-color capsule_bg #242436;
+@define-color capsule_hover #2d2d44;
+@define-color capsule_fg #D8DEE9;
+@define-color border_color #3B4252;
+@define-color clock_color #F5C2E7;
+@define-color ram_color #CBA6F7;
+@define-color keyviz_color #89DCEB;
+@define-color recorder_color #D894A1;
+@define-color ws_focused #B4BEFE;
+@define-color ws_occupied #B090D7;
+@define-color ws_empty #89DCEB;
+@define-color ws_urgent #D894A1;
+@define-color bt_color #B192DA;
+@define-color net_color #F9E2AF;
+@define-color vol_color #EBA0AC;
+@define-color bat_color #79BFCE;
+@define-color session_color #F38BA7;
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "Maple Mono NF", "JetBrainsMono Nerd Font", monospace;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: transparent;
+    color: @capsule_fg;
+}
+
+/* Tooltips */
+tooltip {
+    background: @capsule_bg;
+    border: 1px solid @border_color;
+    border-radius: 6px;
+    color: @capsule_fg;
+}
+
+tooltip label {
+    color: @capsule_fg;
+    padding: 6px;
+}
+
+/* Individual Pill / Capsule Modules */
+#clock,
+#memory,
+#custom-keyviz,
+#custom-recorder,
+#custom-tags,
+#tray,
+#bluetooth,
+#network,
+#pulseaudio,
+#battery,
+#custom-session {
+    background-color: @capsule_bg;
+    border-radius: 4px;
+    padding: 2px 10px;
+    margin: 2px 1.5px;
+    color: @capsule_fg;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Hover States */
+#clock:hover,
+#memory:hover,
+#custom-keyviz:hover,
+#custom-recorder:hover,
+#custom-tags:hover,
+#bluetooth:hover,
+#network:hover,
+#pulseaudio:hover,
+#battery:hover,
+#custom-session:hover {
+    background-color: @capsule_hover;
+}
+
+/* Module Accent Colors (Matching Noctalia visual reference) */
+#clock {
+    color: @clock_color;
+}
+
+#memory {
+    color: @ram_color;
+}
+
+#custom-keyviz {
+    color: @keyviz_color;
+    padding: 2px 8px;
+}
+
+#custom-recorder {
+    color: @recorder_color;
+    padding: 2px 8px;
+}
+
+#custom-tags {
+    padding: 2px 12px;
+    font-weight: bold;
+}
+
+#tray {
+    padding: 2px 8px;
+}
+
+#bluetooth {
+    color: @bt_color;
+}
+
+#network {
+    color: @net_color;
+}
+
+#pulseaudio {
+    color: @vol_color;
+}
+
+#pulseaudio.muted {
+    color: #4C566A;
+}
+
+#battery {
+    color: @bat_color;
+}
+
+#battery.warning {
+    color: #EBCB8B;
+}
+
+#battery.critical {
+    color: #BF616A;
+}
+
+#custom-session {
+    color: @session_color;
+    padding: 2px 8px;
+}

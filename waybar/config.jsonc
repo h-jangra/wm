@@ -1,0 +1,129 @@
+{
+    // Waybar Configuration - Noctalia Pill/Capsule Style
+    "layer": "top",
+    "position": "top",
+    "height": 30,
+    "margin-top": 4,
+    "margin-left": 6,
+    "margin-right": 6,
+    "spacing": 3,
+
+    // Module Layout (Noctalia: start, center, end)
+    "modules-left": [
+        "clock",
+        "memory",
+        "custom/keyviz",
+        "custom/recorder"
+    ],
+    "modules-center": [
+        "custom/tags"
+    ],
+    "modules-right": [
+        "tray",
+        "bluetooth",
+        "network",
+        "pulseaudio",
+        "battery",
+        "custom/session"
+    ],
+
+    // -------------------------------------------------------------------------
+    // Left Modules
+    // -------------------------------------------------------------------------
+    "clock": {
+        "format": "󰥔 {:%a %-I:%M %p}",
+        "format-alt": "󰥔 {:%Y-%m-%d  %H:%M:%S}",
+        "tooltip-format": "<big>{:%A · %B %d, %Y}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+
+    "memory": {
+        "format": "󰍛 {used:0.1f}G",
+        "interval": 2,
+        "tooltip": true,
+        "tooltip-format": "RAM: {used:0.1f}GiB / {total:0.1f}GiB ({percentage}%)",
+        "on-click": "foot -e htop"
+    },
+
+    "custom/keyviz": {
+        "format": "󰌌",
+        "tooltip": true,
+        "tooltip-format": "Key Visualizer (Click to toggle)",
+        "on-click": "command -v keyviz >/dev/null 2>&1 && (pkill -x keyviz || keyviz &) || notify-send -h string:x-canonical-private-synchronous:wm-keyviz 'Keyviz' 'Key visualizer toggle'"
+    },
+
+    "custom/recorder": {
+        "format": "󰑋",
+        "tooltip": true,
+        "tooltip-format": "Region Screen Recorder / Capture",
+        "on-click": "rofi-screenshot"
+    },
+
+    // -------------------------------------------------------------------------
+    // Center Module: Workspaces (Compact Pills)
+    // -------------------------------------------------------------------------
+    "custom/tags": {
+        "exec": "mango-tags-waybar",
+        "return-type": "json",
+        "format": "{}",
+        "tooltip": true,
+        "on-click": "mmsg dispatch switch_layout"
+    },
+
+    // -------------------------------------------------------------------------
+    // Right Modules
+    // -------------------------------------------------------------------------
+    "tray": {
+        "icon-size": 15,
+        "spacing": 6
+    },
+
+    "bluetooth": {
+        "format": "󰂯",
+        "format-connected": "󰂱 {device_alias}",
+        "format-disabled": "󰂲",
+        "tooltip-format": "Bluetooth: {controller_alias}\n{num_connections} connected",
+        "tooltip-format-connected": "Bluetooth: {controller_alias}\n{device_enumerate}",
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+        "on-click": "rofi-bluetooth"
+    },
+
+    "network": {
+        "format-wifi": "󰤨 {essid}",
+        "format-ethernet": "󰈀 {ifname}",
+        "format-linked": "󰈁 {ifname} (No IP)",
+        "format-disconnected": "󰤭",
+        "tooltip-format-wifi": "Wi-Fi: {essid} ({signalStrength}%)\nIP: {ipaddr}\nGW: {gwaddr}",
+        "tooltip-format-ethernet": "Ethernet: {ifname}\nIP: {ipaddr}",
+        "tooltip-format-disconnected": "Network: Disconnected",
+        "on-click": "rofi-wifi"
+    },
+
+    "pulseaudio": {
+        "format": "󰕾 {volume}%",
+        "format-muted": "󰖁 {volume}%",
+        "format-bluetooth": "󰋋 {volume}%",
+        "format-bluetooth-muted": "󰟎 {volume}%",
+        "scroll-step": 5,
+        "on-click": "rofi-audio",
+        "tooltip-format": "Audio: {desc} ({volume}%)"
+    },
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "󰁹 {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+        "format-full": "󰁹 Full",
+        "tooltip-format": "Battery: {capacity}% ({timeTo})"
+    },
+
+    "custom/session": {
+        "format": "󰐥",
+        "tooltip": true,
+        "tooltip-format": "Power & Session Menu",
+        "on-click": "rofi-powermenu"
+    }
+}

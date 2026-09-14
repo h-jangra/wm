@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""
+mango-window-waybar: Real-time focused window title for Waybar.
+Streams mmsg watch focusing-client and outputs JSON formatted for Waybar.
+Handles reconnection, signal termination, and IPC errors gracefully with zero busy-loops.
+"""
+import sys
+import json
+import subprocess
+import time
+import signal
+
+def sig_handler(signum, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, sig_handler)
+signal.signal(signal.SIGINT, sig_handler)
+
+def format_title(data):
+    if not isinstance(data, dict):
+        return {"text": "", "class": "window-empty"}
+    
+    title = data.get("title", "")
+    appid = data.get("appid", "")
+    
+    if not title and not appid:
+        return {"text": "", "class": "window-empty"}
+    
+    display = title if title else appid
+    if len(display) > 35:
+        display = display[:32] + "..."
+        
+    return {
+        "text": display,
+        "tooltip": f"{appid}: {title}" if appid else title,
+        "class": "window"
+    }
+
+def main():
+    while True:
+        try:
+            # 1. Output initial window state
+            init = subprocess.run(["mmsg", "get", "focusing-client"], stdout=subprocess.PIPE, text=True, timeout=2)
+            if init.returncode == 0 and init.stdout.strip():
+                try:
+                    print(json.dumps(format_title(json.loads(init.stdout))), flush=True)
+                except Exception:
+                    pass
+
+            # 2. Open persistent stream
+            proc = subprocess.Popen(["mmsg", "watch", "focusing-client"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    print(json.dumps(format_title(data)), flush=True)
+                except Exception:
+                    continue
+
+            proc.wait()
+        except FileNotFoundError:
+            print(json.dumps({"text": "", "class": "window-empty"}), flush=True)
+            time.sleep(5)
+        except Exception:
+            pass
+
+        time.sleep(2)
+
+if __name__ == "__main__":
+    main()

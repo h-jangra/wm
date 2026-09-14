@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# audio-check: PipeWire & WirePlumber Audio Diagnostic Tool
+# Verifies daemons, sockets, pulse compatibility, sinks, sources, and defaults.
+# ==============================================================================
+set -euo pipefail
+
+echo "========================================================"
+echo "          PipeWire Audio Diagnostic Tool               "
+echo "========================================================"
+
+status=0
+
+# 1. Daemon Checks
+echo -n "[1/4] Checking Audio Daemons... "
+pw_pid=$(pgrep -x pipewire || true)
+wp_pid=$(pgrep -x wireplumber || true)
+pwp_pid=$(pgrep -x pipewire-pulse || true)
+
+if [[ -n "$pw_pid" && -n "$wp_pid" ]]; then
+    echo "OK"
+    echo "      ✓ PipeWire PID: $pw_pid"
+    echo "      ✓ WirePlumber PID: $wp_pid"
+    if [[ -n "$pwp_pid" ]]; then
+        echo "      ✓ PipeWire-Pulse PID: $pwp_pid"
+    else
+        echo "      ! PipeWire-Pulse is not running (PulseAudio compatibility may be limited)"
+    fi
+else
+    echo "FAILED"
+    [[ -z "$pw_pid" ]] && echo "      ✗ PipeWire is NOT running."
+    [[ -z "$wp_pid" ]] && echo "      ✗ WirePlumber session manager is NOT running."
+    status=1
+fi
+
+# 2. Runtime Socket Check
+echo -n "[2/4] Checking PipeWire Runtime Socket... "
+pw_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pipewire-0"
+if [[ -S "$pw_socket" ]]; then
+    echo "OK ($pw_socket)"
+else
+    echo "FAILED"
+    echo "      ✗ Socket not found at: $pw_socket"
+    status=1
+fi
+
+# 3. wpctl Availability
+echo -n "[3/4] Checking wpctl Client... "
+if command -v wpctl >/dev/null 2>&1; then
+    echo "OK ($(wpctl --version 2>/dev/null || echo 'available'))"
+else
+    echo "FAILED"
+    echo "      ✗ wpctl (WirePlumber) command not found in PATH."
+    status=1
+fi
+
+# 4. Device Enumeration
+echo "[4/4] Enumerating Audio Devices..."
+if command -v wpctl >/dev/null 2>&1 && [[ $status -eq 0 ]]; then
+    echo ""
+    echo "--- Default Audio Devices ---"
+    default_sink_vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || echo "Unknown")
+    echo "Default Output Sink: $default_sink_vol"
+    default_src_vol=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null || echo "Unknown")
+    echo "Default Input Source: $default_src_vol"
+
+    echo ""
+    echo "--- Available Output Sinks ---"
+    wpctl status 2>/dev/null | sed -n '/├─ Sinks:/,/├─ Sources:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' | sed 's/^[ │]*/  /' || echo "  No sinks found."
+
+    echo ""
+    echo "--- Available Input Sources ---"
+    wpctl status 2>/dev/null | sed -n '/├─ Sources:/,/├─ Filters:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' | sed 's/^[ │]*/  /' || echo "  No sources found."
+else
+    echo "      Cannot query devices due to previous failures."
+fi
+
+echo ""
+echo "========================================================"
+if [[ $status -eq 0 ]]; then
+    echo "✓ Audio subsystem is OPERATIONAL."
+    exit 0
+else
+    echo "✗ Audio subsystem has ISSUES."
+    echo ""
+    echo "Remediation:"
+    echo "  1. Ensure packages are installed: pipewire, wireplumber, alsa-pipewire"
+    echo "  2. Start PipeWire: ~/wm/services/pipewire-launcher.sh"
+    echo "  3. Ensure user is in 'audio' group: sudo usermod -aG audio \$USER"
+    exit 1
+fi
