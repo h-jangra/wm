@@ -1,24 +1,39 @@
 /**
- * Rofi Wallpaper Selector Theme - 3-Column Grid with Thumbnails
+ * Rofi Theme Selector - Polished 3x3 Grid Layout
  **/
 @import "theme.rasi"
 
 window {
-    width:                       760px;
+    width:                       660px;
     location:                    center;
     anchor:                      center;
+}
+
+mainbox {
+    spacing:                     12px;
+    children:                    [ "inputbar", "listview" ];
+}
+
+inputbar {
+    padding:                     10px 14px;
+}
+
+entry {
+    placeholder:                 "Select desktop theme...";
 }
 
 listview {
     lines:                       3;
     columns:                     3;
+    cycle:                       true;
+    scrollbar:                   false;
     spacing:                     8px;
     flow:                        horizontal;
 }
 
 element {
     orientation:                 vertical;
-    padding:                     12px 8px;
+    padding:                     16px 12px;
     border-radius:               6px;
     spacing:                     8px;
     cursor:                      pointer;
@@ -34,17 +49,13 @@ element selected.normal {
 }
 
 element-icon {
-    size:                        56px;
+    size:                        36px;
     horizontal-align:            0.5;
     cursor:                      inherit;
 }
 
 element-text {
     horizontal-align:            0.5;
-    font:                        "Maple Mono NF 12";
+    font:                        "Maple Mono NF Medium 13";
     cursor:                      inherit;
-}
-
-entry {
-    placeholder:                 "Select wallpaper or randomize...";
 }

@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# restore: Restore desktop rice configurations from a snapshot
+# Usage: restore [latest | <backup-folder-name>]
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+BACKUP_ROOT="${REPO_DIR}/backups"
+
+list_backups() {
+    echo "Available Backups in ${BACKUP_ROOT}:"
+    if [[ ! -d "$BACKUP_ROOT" ]] || [[ -z "$(ls -A "$BACKUP_ROOT" 2>/dev/null)" ]]; then
+        echo "  (No backups found)"
+        return
+    fi
+    for d in "$BACKUP_ROOT"/backup-*; do
+        [[ -d "$d" ]] || continue
+        echo "  - $(basename "$d")"
+    done
+    echo ""
+    echo "Usage: $(basename "$0") <backup-folder-name> (or 'latest')"
+}
+
+target="${1:-}"
+if [[ -z "$target" || "$target" == "-h" || "$target" == "--help" ]]; then
+    list_backups
+    exit 0
+fi
+
+if [[ "$target" == "latest" ]]; then
+    target_path=$(ls -td "$BACKUP_ROOT"/backup-* 2>/dev/null | head -n1 || true)
+    if [[ -z "$target_path" || ! -d "$target_path" ]]; then
+        echo "Error: No backups found." >&2
+        exit 1
+    fi
+else
+    if [[ -d "${BACKUP_ROOT}/${target}" ]]; then
+        target_path="${BACKUP_ROOT}/${target}"
+    elif [[ -d "$target" ]]; then
+        target_path="$target"
+    else
+        echo "Error: Backup directory not found: '$target'" >&2
+        list_backups
+        exit 1
+    fi
+fi
+
+echo "Restoring desktop rice from: ${target_path}..."
+
+for item in mango mangobar waybar rofi mako thunar terminal gtk-3.0 themes scripts; do
+    if [[ -d "${target_path}/${item}" ]]; then
+        cp -a "${target_path}/${item}" "${REPO_DIR}/"
+    fi
+done
+
+if [[ -d "${target_path}/xfce4" ]]; then
+    cp -a "${target_path}/xfce4" "$HOME/.config/"
+fi
+if [[ -d "${target_path}/btop" ]]; then
+    cp -a "${target_path}/btop" "$HOME/.config/"
+fi
+
+# Reload active components
+if [[ -x "${SCRIPT_DIR}/reload" ]]; then
+    "${SCRIPT_DIR}/reload"
+fi
+
+notify-send -h string:x-canonical-private-synchronous:wm-restore "Rice Restore" "Restored from: $(basename "$target_path")"
+echo "Restore complete: $(basename "$target_path")"

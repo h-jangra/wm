@@ -1,18 +1,32 @@
 /**
- * Rofi Application Launcher Theme
+ * Rofi Application Launcher Theme - 2-Column Grid Layout
  **/
-
 @import "theme.rasi"
 
 window {
-    width:                       550px;
+    width:                       720px;
     location:                    center;
     anchor:                      center;
 }
 
 listview {
-    lines:                       8;
-    columns:                     1;
+    lines:                       6;
+    columns:                     2;
+    spacing:                     6px;
+}
+
+element {
+    padding:                     10px 12px;
+    border-radius:               4px;
+    spacing:                     12px;
+}
+
+element-icon {
+    size:                        28px;
+}
+
+element-text {
+    font:                        "Maple Mono NF 13";
 }
 
 entry {

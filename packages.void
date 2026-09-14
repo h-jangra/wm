@@ -6,7 +6,6 @@
 
 # Core Wayland Compositor & Desktop Shell
 mangowc
-# xorg-server-xwayland
 Waybar
 foot
 rofi
@@ -49,6 +48,21 @@ fzf
 fd
 ripgrep
 xmirror
+github-cli
+meson
+ninja
+pkg-config
+wayland-devel
+wayland-protocols
+fcft-devel
+pixman-devel
+cairo-devel
+pango-devel
+pulseaudio-devel
+eudev-libudev-devel
+gdk-pixbuf-devel
+cJSON-devel
+basu-devel
 
 # Basic CLI Utilities
 unzip

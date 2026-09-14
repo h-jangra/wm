@@ -1,26 +1,26 @@
 /**
- * Unified Nord Theme for Rofi Menus
+ * Unified Polished Geometric Theme for Rofi Menus
+ * Styled after the Noctalia / Omarchy design language.
  **/
-@import "../themes/nord.rasi"
+@import "colors.rasi"
 
 * {
-    /* Default Nord color definitions if external import is missing */
-    background:                  #2E3440FF;
-    background-alt:              #3B4252FF;
-    background-surface:          #434C5EFF;
-    border-color:                #4C566AFF;
-    foreground:                  #D8DEE9FF;
-    foreground-muted:            #4C566AFF;
-    foreground-bright:           #ECEFF4FF;
-    selected:                    #88C0D0FF;
-    selected-fg:                 #2E3440FF;
-    accent:                      #81A1C1FF;
-    teal:                        #8FBCBBFF;
-    urgent:                      #BF616AFF;
-    active:                      #A3BE8CFF;
-    warning:                     #EBCB8BFF;
+    /* Fallback tokens */
+    background:                  #1e1e2eF2;
+    background-alt:              #181825FF;
+    background-surface:          #313244FF;
+    border-color:                #45475aFF;
+    foreground:                  #cdd6f4FF;
+    foreground-muted:            #6c7086FF;
+    foreground-bright:           #ffffffFF;
+    selected:                    #b4befeFF;
+    selected-fg:                 #181825FF;
+    accent:                      #b4befeFF;
+    urgent:                      #f38ba8FF;
+    active:                      #a6e3a1FF;
+    warning:                     #f9e2afFF;
 
-    font:                        "Maple Mono, SymbolsNF 10";
+    font:                        "Maple Mono NF 13";
     background-color:            transparent;
     text-color:                  @foreground;
 }
@@ -28,10 +28,10 @@
 window {
     transparency:                "real";
     background-color:            @background;
-    border:                      1px solid;
+    border:                      1px;
     border-color:                @selected;
-    border-radius:               8px;
-    padding:                     15px;
+    border-radius:               6px;
+    padding:                     14px;
 }
 
 mainbox {
@@ -43,7 +43,9 @@ inputbar {
     spacing:                     10px;
     padding:                     8px 12px;
     background-color:            @background-alt;
-    border-radius:               6px;
+    border:                      1px;
+    border-color:                @border-color;
+    border-radius:               4px;
     children:                    [ "prompt", "entry" ];
 }
 
@@ -68,8 +70,9 @@ listview {
 
 element {
     padding:                     8px 12px;
-    border-radius:               6px;
+    border-radius:               4px;
     spacing:                     10px;
+    border:                      0px;
 }
 
 element normal.normal {
@@ -77,7 +80,30 @@ element normal.normal {
     text-color:                  @foreground;
 }
 
+element normal.urgent {
+    background-color:            transparent;
+    text-color:                  @urgent;
+}
+
+element normal.active {
+    background-color:            transparent;
+    text-color:                  @active;
+}
+
 element selected.normal {
+    background-color:            @selected;
+    text-color:                  @selected-fg;
+    border:                      1px;
+    border-color:                @selected;
+    font-weight:                 bold;
+}
+
+element selected.urgent {
+    background-color:            @urgent;
+    text-color:                  @selected-fg;
+}
+
+element selected.active {
     background-color:            @selected;
     text-color:                  @selected-fg;
 }
@@ -87,20 +113,33 @@ element alternate.normal {
     text-color:                  @foreground;
 }
 
+element alternate.urgent {
+    background-color:            transparent;
+    text-color:                  @urgent;
+}
+
+element alternate.active {
+    background-color:            transparent;
+    text-color:                  @active;
+}
+
 element-icon {
-    size:                        20px;
+    size:                        22px;
     cursor:                      inherit;
 }
 
 element-text {
     cursor:                      inherit;
     vertical-align:              0.5;
+    text-color:                  inherit;
 }
 
 message {
     padding:                     8px 12px;
     background-color:            @background-alt;
-    border-radius:               6px;
+    border:                      1px;
+    border-color:                @border-color;
+    border-radius:               4px;
 }
 
 textbox {

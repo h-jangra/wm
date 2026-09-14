@@ -1,0 +1,143 @@
+/* =============================================================================
+ * mangobar Style Sheet - Noctalia Capsule / Pill Layout
+ * Replicating waybar/style.css design tokens for mangobar
+ * ============================================================================= */
+
+/* Theme Palette Definitions */
+@define-color capsule_bg #242436;
+@define-color capsule_hover #2d2d44;
+@define-color capsule_fg #D8DEE9;
+@define-color border_color #3B4252;
+@define-color clock_color #F5C2E7;
+@define-color ram_color #CBA6F7;
+@define-color ws_focused #B4BEFE;
+@define-color ws_occupied #B090D7;
+@define-color ws_empty #89DCEB;
+@define-color ws_urgent #D894A1;
+@define-color bt_color #B192DA;
+@define-color net_color #F9E2AF;
+@define-color vol_color #EBA0AC;
+@define-color bat_color #79BFCE;
+@define-color session_color #F38BA7;
+@define-color accent #88C0D0;
+
+/* Global Typography & Pill Structure */
+* {
+    font-family: "Maple Mono NF", "Maple Mono", "Noto Sans JP", monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: @capsule_fg;
+    background-color: @capsule_bg;
+    padding: 1px 9px;
+    margin: 1px 2px;
+    border-radius: 4px;
+}
+
+#bar {
+    background: none;
+    margin: 4px 6px;
+}
+
+#bar.sel {
+    background: none;
+}
+
+/* Workspaces / Tags */
+#tags {
+    padding: 1px 7px;
+    margin: 0px 1px;
+    color: @ws_occupied;
+    background-color: transparent;
+    border-radius: 4px;
+}
+
+#tags.active {
+    color: @ws_focused;
+    background-color: @capsule_bg;
+    font-weight: bold;
+}
+
+#tags.occupied {
+    color: @ws_occupied;
+    background-color: @capsule_bg;
+}
+
+#tags.urgent {
+    color: @ws_urgent;
+    background-color: @capsule_bg;
+    font-weight: bold;
+}
+
+#tags.empty {
+    color: @ws_empty;
+    background-color: transparent;
+}
+
+/* Center Module: Clock */
+#clock {
+    color: @clock_color;
+    padding: 1px 10px;
+}
+
+/* Right-Side Modules */
+#custom-memory {
+    color: @ram_color;
+}
+
+#mem {
+    color: @ram_color;
+}
+
+#volume {
+    color: @vol_color;
+}
+
+#network {
+    color: @net_color;
+}
+
+#battery {
+    color: @bat_color;
+}
+
+#tray {
+    padding: 1px 8px;
+}
+
+/* Optional / Custom Modules */
+#custom-launcher {
+    color: @accent;
+    padding: 1px 8px;
+}
+
+#custom-session {
+    color: @session_color;
+    padding: 1px 8px;
+}
+
+#title {
+    color: @capsule_fg;
+    padding: 1px 9px;
+}
+
+#layout {
+    color: @accent;
+    padding: 1px 8px;
+}
+
+/* Context Menu (Tray / StatusNotifierItem) */
+menu {
+    background-color: @capsule_bg;
+    border-color: @border_color;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+menuitem {
+    color: @capsule_fg;
+}
+
+menuitem:hover {
+    color: @capsule_fg;
+    background-color: @capsule_hover;
+}

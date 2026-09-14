@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # install.sh: Void Linux Desktop Installer
-# Configures MangoWC, Waybar, Rofi, Foot, PipeWire, runit, repos, and optional Ly DM.
+# Configures MangoWC, Waybar, MangoBar, Rofi, Foot, PipeWire, runit, repos, and optional Ly DM.
 #
 # Idempotent, safe to run multiple times, manages Void repos/mirrors & services.
 # ==============================================================================
@@ -28,6 +28,7 @@ AUTO_YES=0
 SETUP_MIRROR=0
 ENABLE_EXTRA_REPOS=1
 BUILD_LY=0
+BUILD_MANGOBAR=0
 FIX_AUDIO=0
 FIX_DBUS=0
 FIX_BLUETOOTH=0
@@ -59,6 +60,10 @@ while [[ $# -gt 0 ]]; do
             LOGIN_MANAGER="ly"
             shift 1
             ;;
+        --build-mangobar)
+            BUILD_MANGOBAR=1
+            shift 1
+            ;;
         --fix-audio)
             FIX_AUDIO=1
             shift 1
@@ -80,6 +85,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --mirror                    Launch xmirror to configure/select an XBPS mirror"
             echo "  --no-extra-repos            Skip enabling nonfree and multilib Void repositories"
             echo "  --build-ly                  Force building Ly from source (https://github.com/fairyglade/ly)"
+            echo "  --build-mangobar            Force building/rebuilding MangoBar from source (https://github.com/mangowm/mangobar)"
             echo "  --fix-audio                 Diagnose and repair PipeWire/WirePlumber audio subsystem"
             echo "  --fix-dbus                  Diagnose and repair DBus system and session services"
             echo "  --fix-bluetooth             Diagnose and repair BlueZ Bluetooth daemon and rfkill"
@@ -234,6 +240,22 @@ if [[ $is_void -eq 1 && -f "$SCRIPT_DIR/packages.void" ]]; then
             continue
         fi
 
+        # Special handling for mangobar (built from source via meson)
+        if [[ "$pkg" == "mangobar" ]]; then
+            if command -v mangobar >/dev/null 2>&1; then
+                msg_ok "MangoBar binary ('mangobar') is already available."
+                continue
+            fi
+            if xbps-query -R mangobar >/dev/null 2>&1; then
+                if ! xbps-query mangobar >/dev/null 2>&1; then
+                    missing_packages+=("mangobar")
+                fi
+            else
+                msg_info "MangoBar will be built from source via meson in step 4."
+            fi
+            continue
+        fi
+
         # Check if installed locally (xbps-query <pkg> returns 0 if installed, 2 if missing)
         if xbps-query "$pkg" >/dev/null 2>&1; then
             continue
@@ -284,7 +306,97 @@ if [[ $is_void -eq 1 && -f "$SCRIPT_DIR/packages.void" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 4. Runit Services Configuration
+# 4. MangoBar Build & Installation (Source: https://github.com/mangowm/mangobar)
+# ------------------------------------------------------------------------------
+msg_info "Checking MangoBar (native status bar for MangoWC)..."
+
+do_build_mangobar=0
+if [[ $BUILD_MANGOBAR -eq 1 ]]; then
+    do_build_mangobar=1
+elif ! command -v mangobar >/dev/null 2>&1; then
+    msg_info "MangoBar binary not found on system."
+    if [[ $AUTO_YES -eq 1 || ! -t 0 ]]; then
+        do_build_mangobar=1
+    else
+        echo ""
+        read -rp "Build and install MangoBar from source (https://github.com/mangowm/mangobar)? [Y/n]: " mb_choice
+        if [[ ! "$mb_choice" =~ ^[Nn]$ ]]; then
+            do_build_mangobar=1
+        fi
+    fi
+else
+    msg_ok "MangoBar binary found at $(command -v mangobar)."
+    if [[ $AUTO_YES -eq 0 && -t 0 ]]; then
+        echo ""
+        read -rp "Rebuild and reinstall MangoBar from source? [y/N]: " mb_rebuild
+        if [[ "$mb_rebuild" =~ ^[Yy]$ ]]; then
+            do_build_mangobar=1
+        fi
+    fi
+fi
+
+if [[ $do_build_mangobar -eq 1 ]]; then
+    echo ""
+    msg_info "Building and installing MangoBar from https://github.com/mangowm/mangobar..."
+
+    # Ensure required build tools exist
+    mb_build_tools=()
+    for tool in meson ninja git pkg-config; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            mb_build_tools+=("$tool")
+        fi
+    done
+    if [[ ${#mb_build_tools[@]} -gt 0 && $is_void -eq 1 ]]; then
+        msg_info "Installing missing build tool(s): ${mb_build_tools[*]}..."
+        sudo xbps-install -y "${mb_build_tools[@]}" || msg_warn "Some build tools could not be installed."
+    fi
+
+    BUILD_TMP=$(mktemp -d /tmp/mangobar-build-XXXXXX)
+    msg_info "Fetching mangowm/mangobar into $BUILD_TMP..."
+    clone_ok=0
+    if git clone --depth 1 https://github.com/mangowm/mangobar.git "$BUILD_TMP" 2>/dev/null; then
+        clone_ok=1
+    elif [[ -d "$HOME/mangobar" && -f "$HOME/mangobar/meson.build" ]]; then
+        msg_warn "Git clone failed; using local source tree at $HOME/mangobar..."
+        cp -r "$HOME/mangobar"/* "$BUILD_TMP"/ 2>/dev/null || true
+        clone_ok=1
+    fi
+
+    if [[ $clone_ok -eq 1 ]]; then
+        pushd "$BUILD_TMP" >/dev/null
+        built_ok=0
+        msg_info "Configuring MangoBar build with meson (prefix=/usr)..."
+        if meson setup build -Dprefix=/usr; then
+            msg_info "Compiling MangoBar with ninja..."
+            if ninja -C build -j"$(nproc 2>/dev/null || echo 2)"; then
+                msg_info "Installing MangoBar via ninja install (requires sudo)..."
+                if sudo ninja -C build install; then
+                    built_ok=1
+                else
+                    msg_err "Failed to install MangoBar (ninja install returned non-zero)."
+                fi
+            else
+                msg_err "Failed to compile MangoBar with ninja."
+            fi
+        else
+            msg_err "Failed to configure MangoBar build with meson."
+        fi
+        popd >/dev/null
+        rm -rf "$BUILD_TMP"
+
+        if [[ $built_ok -eq 1 ]] || command -v mangobar >/dev/null 2>&1; then
+            msg_ok "MangoBar built and installed successfully ($(command -v mangobar))."
+        else
+            msg_err "MangoBar build/install encountered errors."
+        fi
+    else
+        msg_err "Failed to obtain MangoBar source code."
+        rm -rf "$BUILD_TMP"
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Runit Services Configuration
 # ------------------------------------------------------------------------------
 if [[ $is_void -eq 1 ]]; then
     msg_info "Executing runit service setup..."
@@ -292,13 +404,14 @@ if [[ $is_void -eq 1 ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 5. Configuration Backup & Symlinking (Idempotent)
+# 6. Configuration Backup & Symlinking (Idempotent)
 # ------------------------------------------------------------------------------
 msg_info "Setting up configuration symlinks..."
 mkdir -p "$HOME/.config"
 
 CONFIG_TARGETS=(
     "mango:mango"
+    "mangobar:mangobar"
     "waybar:waybar"
     "rofi:rofi"
     "terminal/foot:foot"
@@ -372,7 +485,7 @@ if [[ -f "$SCRIPT_DIR/gtk-3.0/gtk.css" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 6. Font Installation (Idempotent)
+# 7. Font Installation (Idempotent)
 # ------------------------------------------------------------------------------
 msg_info "Checking bundled icon fonts..."
 FONT_DIR="$HOME/.local/share/fonts/wm"
@@ -400,7 +513,7 @@ if [[ -d "$SCRIPT_DIR/fonts" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 7. Script Permissions & System Binaries (Idempotent)
+# 8. Script Permissions & System Binaries (Idempotent)
 # ------------------------------------------------------------------------------
 msg_info "Setting script execution permissions..."
 chmod +x "$SCRIPT_DIR"/scripts/* "$SCRIPT_DIR"/services/* 2>/dev/null || true
@@ -418,6 +531,9 @@ if command -v sudo >/dev/null 2>&1; then
     if command -v mango >/dev/null 2>&1 && ! command -v mangowc >/dev/null 2>&1; then
         sudo ln -sf "$(command -v mango)" /usr/local/bin/mangowc
     fi
+    if command -v mangobar >/dev/null 2>&1 && ! [[ -e /usr/local/bin/mangobar ]]; then
+        sudo ln -sf "$(command -v mangobar)" /usr/local/bin/mangobar
+    fi
     msg_ok "Desktop scripts and helpers linked into /usr/local/bin/."
 fi
 
@@ -431,6 +547,9 @@ for script in "$SCRIPT_DIR"/scripts/* "$SCRIPT_DIR"/services/pipewire-launcher.s
 done
 if command -v mango >/dev/null 2>&1 && ! command -v mangowc >/dev/null 2>&1; then
     ln -sf "$(command -v mango)" "$HOME/.local/bin/mangowc"
+fi
+if command -v mangobar >/dev/null 2>&1 && ! [[ -e "$HOME/.local/bin/mangobar" ]]; then
+    ln -sf "$(command -v mangobar)" "$HOME/.local/bin/mangobar"
 fi
 
 # Wayland session desktop entry:
@@ -475,7 +594,7 @@ if [[ -x "$SCRIPT_DIR/scripts/generate-palette" && -f "$SCRIPT_DIR/wallpapers/no
 fi
 
 # ------------------------------------------------------------------------------
-# 8. Optional Login Manager Setup (Ly)
+# 9. Optional Login Manager Setup (Ly)
 # ------------------------------------------------------------------------------
 if [[ -z "$LOGIN_MANAGER" ]]; then
     if [[ $AUTO_YES -eq 1 ]]; then
@@ -656,7 +775,7 @@ elif [[ "$LOGIN_MANAGER" != "none" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 9. System Verification (wm-doctor)
+# 10. System Verification (wm-doctor)
 # ------------------------------------------------------------------------------
 echo ""
 msg_info "Running wm-doctor system diagnosis..."

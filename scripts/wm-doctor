@@ -109,6 +109,10 @@ else
     report_fail "Waybar not found" "Run: sudo xbps-install -Sy Waybar"
 fi
 
+if command -v mangobar >/dev/null 2>&1; then
+    report_ok "MangoBar found ($(mangobar -v 2>&1 | head -n1))"
+fi
+
 if command -v rofi >/dev/null 2>&1; then
     report_ok "Rofi found ($(rofi -v | head -n1))"
 else
@@ -304,7 +308,8 @@ echo "                   Doctor Dashboard                     "
 echo "========================================================"
 echo "  $(command -v mango >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') MangoWC Compositor"
 echo "  $(([[ -f /usr/share/wayland-sessions/mango.desktop || -f "$HOME/.local/share/wayland-sessions/mango.desktop" ]]) && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Session File (mango.desktop)"
-echo "  $(command -v waybar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Waybar"
+echo "  $(command -v waybar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Waybar
+  $(command -v mangobar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[90m-\033[0m') MangoBar (Alternative/Native Bar)"
 echo "  $(command -v rofi >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Rofi"
 echo "  $(command -v foot >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Foot"
 echo "  $(command -v thunar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Thunar"

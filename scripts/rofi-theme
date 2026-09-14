@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-theme: Interactive Rofi Theme Selector for Void Linux + MangoWC rice
+# Displays a polished 3x3 grid of available static and dynamic themes.
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+THEMES_DIR="${SCRIPT_DIR}/../themes"
+ROFI_DIR="${SCRIPT_DIR}/../rofi"
+CURRENT_FILE="${THEMES_DIR}/current"
+CURRENT_MODE_FILE="${THEMES_DIR}/current_mode"
+
+current_theme=""
+if [[ -f "$CURRENT_FILE" ]]; then
+    current_theme=$(cat "$CURRENT_FILE" | tr -d '[:space:]')
+fi
+current_mode="static"
+if [[ -f "$CURRENT_MODE_FILE" ]]; then
+    current_mode=$(cat "$CURRENT_MODE_FILE" | tr -d '[:space:]')
+fi
+
+RASI="${ROFI_DIR}/theme-selector.rasi"
+[[ -f "$RASI" ]] || RASI="${ROFI_DIR}/theme.rasi"
+
+declare -A THEME_NAMES=(
+    ["tokyo-night"]="Tokyo Night"
+    ["catppuccin-mocha"]="Catppuccin Mocha"
+    ["gruvbox-dark"]="Gruvbox Dark"
+    ["nord"]="Nord"
+    ["rose-pine"]="Rose Pine"
+    ["everforest"]="Everforest"
+    ["kanagawa"]="Kanagawa"
+    ["matte-black"]="Matte Black"
+    ["dynamic"]="Dynamic Wallpaper"
+)
+
+ORDER=(
+    "tokyo-night"
+    "catppuccin-mocha"
+    "gruvbox-dark"
+    "nord"
+    "rose-pine"
+    "everforest"
+    "kanagawa"
+    "matte-black"
+    "dynamic"
+)
+
+menu_items=""
+for id in "${ORDER[@]}"; do
+    name="${THEME_NAMES[$id]}"
+    icon="preferences-desktop-theme"
+    if [[ "$id" == "dynamic" ]]; then
+        icon="preferences-desktop-wallpaper"
+    fi
+
+    label="$name"
+    if [[ "$current_mode" == "dynamic" && "$id" == "dynamic" ]]; then
+        label="✔ ${name}"
+    elif [[ "$current_mode" == "static" && "$current_theme" == "$id" ]]; then
+        label="✔ ${name}"
+    fi
+
+    menu_items+="${label}\0icon\x1f${icon}\n"
+done
+
+# Use -format i to get exact selected index (0-based) from rofi
+selected_idx=$(printf "%b" "$menu_items" | rofi -dmenu -format i -show-icons -p "Themes" ${RASI:+-theme "$RASI"} || true)
+
+# Exit if cancelled
+if [[ -z "$selected_idx" || "$selected_idx" -lt 0 ]]; then
+    exit 0
+fi
+
+if [[ "$selected_idx" -ge 0 && "$selected_idx" -lt "${#ORDER[@]}" ]]; then
+    selected_id="${ORDER[$selected_idx]}"
+    if [[ "$selected_id" == "dynamic" ]]; then
+        exec "${SCRIPT_DIR}/theme-from-wallpaper"
+    else
+        exec "${SCRIPT_DIR}/theme-switch" "$selected_id"
+    fi
+fi

@@ -6,3 +6,9 @@ __pycache__/
 *~
 *.swp
 *.bak
+
+# Local backups and virtualenvs
+backups/
+.venv/
+venv/
+*.log

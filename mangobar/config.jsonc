@@ -1,0 +1,115 @@
+// mangobar configuration - Full Waybar replication for MangoWC
+// Reference: https://github.com/mangowm/mangobar
+{
+    "layer": "top",
+    "height": 28,
+    "buffer-scale": 1,
+    "scroll-interval": 100,
+    "smooth-scrolling-threshold": 5.0,
+
+    // Minimal Layout matching Waybar: Left (Workspaces), Center (Clock), Right (Memory, Audio, Network, Battery, Tray)
+    "modules-left": [
+        "workspaces"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "custom/memory",
+        "pulseaudio",
+        "network",
+        "battery",
+        "tray"
+    ],
+
+    // -------------------------------------------------------------------------
+    // Left Modules: Workspaces (Tags)
+    // -------------------------------------------------------------------------
+    "workspaces": {
+        "hide-empty": true,
+        "tag-names": ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
+        "overview-label": "OVERVIEW",
+        "on-click": "activate",
+        "on-click-right": "mmsg dispatch switch_layout >/dev/null 2>&1",
+        "scroll-interval": 100,
+        "on-scroll-up": "mmsg dispatch viewtoleft >/dev/null 2>&1",
+        "on-scroll-down": "mmsg dispatch viewtoright >/dev/null 2>&1"
+    },
+
+    // -------------------------------------------------------------------------
+    // Center Module: Clock
+    // -------------------------------------------------------------------------
+    "clock": {
+        "format": "󰥔 {:L%a %I:%M %p}",
+        "format-alt": "󰥔 {:L%Y-%m-%d %H:%M:%S}",
+        "on-click": "rofi-calendar"
+    },
+
+    // -------------------------------------------------------------------------
+    // Right Modules: System Stats & Quick Toggles
+    // -------------------------------------------------------------------------
+    "custom/memory": {
+        "exec": "awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{printf \"%.1fGB\", (t-a)/1024/1024}' /proc/meminfo",
+        "interval": 10,
+        "format": "󰍛 {}",
+        "on-click": "footclient -e btop || foot -e btop"
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰖁 {volume}%",
+        "icons": ["󰕿", "󰖀", "󰕾"],
+        "on-click": "rofi-audio",
+        "on-click-right": "volume --toggle",
+        "on-click-middle": "volume --toggle-mic",
+        "on-scroll-up": "volume --inc",
+        "on-scroll-down": "volume --dec"
+    },
+
+    "network": {
+        "format": "󰤨 {ifname}",
+        "format-alt": "↓{down} ↑{up}",
+        "on-click": "rofi-wifi"
+    },
+
+    "battery": {
+        "format": "{icon} {percent}%",
+        "icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "icon-charging": "󰂄",
+        "icon-full": "󰁹",
+        "on-click": "rofi-power-profile"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 6
+    },
+
+    // -------------------------------------------------------------------------
+    // Optional / Alternative Modules (Ready to enable in modules-*)
+    // -------------------------------------------------------------------------
+    "memory": {
+        "format": "󰍛 {}%",
+        "on-click": "footclient -e btop || foot -e btop"
+    },
+
+    "window": {
+        "format": "{}",
+        "max-length": 300
+    },
+
+    "layout": {
+        "format": "{}"
+    },
+
+    "custom/launcher": {
+        "format": "󰣚",
+        "on-click": "rofi-launcher",
+        "on-click-right": "rofi-theme"
+    },
+
+    "custom/session": {
+        "format": "󰐥",
+        "on-click": "rofi-powermenu"
+    }
+}

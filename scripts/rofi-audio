@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# rofi-audio: PipeWire / WirePlumber Audio Manager for Rofi
-# Select output sinks, input sources, adjust volume, and toggle mute using wpctl.
+# rofi-audio: Minimal PipeWire / WirePlumber Audio Switcher for Rofi
+# Displays ONLY input and output devices in a side-by-side grid (Input | Output).
 # ==============================================================================
 set -euo pipefail
 
@@ -27,108 +27,81 @@ if ! command -v wpctl >/dev/null 2>&1; then
 fi
 
 if ! wpctl status >/dev/null 2>&1; then
-    notify "Audio daemon is not responding. Run: ~/wm/scripts/audio-check"
+    notify "Audio daemon is not responding."
     exit 1
 fi
 
-# Get current sink volume
-vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || echo "Volume: 0.00")
-current_vol=$(echo "$vol_info" | awk '{print int($2 * 100)}')
-is_muted=""
-if echo "$vol_info" | grep -q "MUTED"; then
-    is_muted=" [MUTED]"
-fi
+audio_sec=$(wpctl status 2>/dev/null | sed -n '/^Audio/,/^Video/p')
 
-# Menu Actions
-menu_content="󰕾  Volume: ${current_vol}%${is_muted}\n"
-menu_content="${menu_content}󰖀  Volume +5%\n"
-menu_content="${menu_content}󰕿  Volume -5%\n"
-menu_content="${menu_content}󰝟  Toggle Output Mute\n"
-menu_content="${menu_content}󰍬  Toggle Microphone Mute\n"
-menu_content="${menu_content}--- Output Devices (Sinks) ---\n"
-
-# Parse Sinks from wpctl status
-sinks_raw=$(wpctl status | sed -n '/├─ Sinks:/,/├─ Sources:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' || true)
-
+# 1. Parse Sinks (Outputs)
+sinks_raw=$(echo "$audio_sec" | sed -n '/├─ Sinks:/,/├─ Sources:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' || true)
+sinks=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     id=$(echo "$line" | sed -E 's/^[ │*]*([0-9]+)\..*/\1/')
     desc=$(echo "$line" | sed -E 's/^[ │*]*[0-9]+\.[ ]*//' | sed -E 's/\[.*\]//' | xargs)
-    
-    icon="󰓃"
-    if echo "$desc" | grep -qi "headphone"; then
-        icon="󰋋"
-    elif echo "$desc" | grep -qi "hdmi"; then
-        icon="󰡁"
-    elif echo "$desc" | grep -qi "speaker"; then
-        icon="󰓃"
-    fi
-
+    active=""
     if echo "$line" | grep -q '\*'; then
-        menu_content="${menu_content}${icon}  ${desc} [Active] (#${id})\n"
-    else
-        menu_content="${menu_content}${icon}  ${desc} (#${id})\n"
+        active=" [Active]"
     fi
+    sinks+=("󰓃 [Output] ${desc}${active} (#${id})")
 done <<< "$sinks_raw"
 
-menu_content="${menu_content}--- Input Devices (Sources) ---\n"
-
-# Parse Sources from wpctl status
-sources_raw=$(wpctl status | sed -n '/├─ Sources:/,/├─ Filters:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' || true)
-
+# 2. Parse Sources (Inputs)
+sources_raw=$(echo "$audio_sec" | sed -n '/├─ Sources:/,/├─ Filters:/p' | grep -E '^[ │]*(\*?[ ]*[0-9]+)\.' || true)
+sources=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     id=$(echo "$line" | sed -E 's/^[ │*]*([0-9]+)\..*/\1/')
     desc=$(echo "$line" | sed -E 's/^[ │*]*[0-9]+\.[ ]*//' | sed -E 's/\[.*\]//' | xargs)
-    
-    icon="󰍬"
+    active=""
     if echo "$line" | grep -q '\*'; then
-        menu_content="${menu_content}${icon}  ${desc} [Active] (#${id})\n"
-    else
-        menu_content="${menu_content}${icon}  ${desc} (#${id})\n"
+        active=" [Active]"
     fi
+    sources+=("󰍬 [Input]  ${desc}${active} (#${id})")
 done <<< "$sources_raw"
 
-chosen=$(printf "%b" "$menu_content" | rofi -dmenu -p "Audio Manager" ${RASI:+-theme "$RASI"})
+# If either list is empty, add placeholder
+if [[ ${#sinks[@]} -eq 0 ]]; then
+    sinks+=("󰓃 [Output] No audio outputs")
+fi
+if [[ ${#sources[@]} -eq 0 ]]; then
+    sources+=("󰍬 [Input]  No audio inputs")
+fi
+
+# Interleave into Input | Output grid
+max_len=${#sources[@]}
+if [[ ${#sinks[@]} -gt $max_len ]]; then
+    max_len=${#sinks[@]}
+fi
+
+grid_items=()
+for ((i=0; i<max_len; i++)); do
+    # Column 1: Input
+    if [[ $i -lt ${#sources[@]} ]]; then
+        grid_items+=("${sources[$i]}")
+    else
+        grid_items+=("󰍬 [Input]  ---")
+    fi
+    # Column 2: Output
+    if [[ $i -lt ${#sinks[@]} ]]; then
+        grid_items+=("${sinks[$i]}")
+    else
+        grid_items+=("󰓃 [Output] ---")
+    fi
+done
+
+menu_input=$(printf "%s\n" "${grid_items[@]}")
+chosen=$(printf "%s\n" "$menu_input" | rofi -dmenu -p "Audio Switcher" ${RASI:+-theme "$RASI"})
 
 [[ -z "$chosen" ]] && exit 0
-
-if [[ "$chosen" == *"Volume +5%"* ]]; then
-    wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
-    new_vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2 * 100)}')
-    notify "Volume: ${new_vol}%"
-    exit 0
-elif [[ "$chosen" == *"Volume -5%"* ]]; then
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-    new_vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2 * 100)}')
-    notify "Volume: ${new_vol}%"
-    exit 0
-elif [[ "$chosen" == *"Toggle Output Mute"* ]]; then
-    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-    if wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q "MUTED"; then
-        notify "Audio Muted"
-    else
-        notify "Audio Unmuted"
-    fi
-    exit 0
-elif [[ "$chosen" == *"Toggle Microphone Mute"* ]]; then
-    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
-    if wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q "MUTED"; then
-        notify "Microphone Muted"
-    else
-        notify "Microphone Active"
-    fi
-    exit 0
-elif [[ "$chosen" == "---"* || "$chosen" == *"Volume:"* ]]; then
-    exec "$0"
-fi
 
 # Extract Target ID
 target_id=$(echo "$chosen" | grep -oE '#[0-9]+' | tr -d '#' || true)
 
 if [[ -n "$target_id" ]]; then
-    clean_name=$(echo "$chosen" | sed -E 's/^[󰓃󰋋󰡁󰍬]  //' | sed -E 's/ \[Active\]//' | sed -E 's/ \(#[0-9]+\)//' | xargs)
-    if wpctl set-default "$target_id"; then
+    clean_name=$(echo "$chosen" | sed -E 's/^[󰓃󰍬] \[(Input|Output)\][ ]*//' | sed -E 's/ \[Active\]//' | sed -E 's/ \(#[0-9]+\)//' | xargs)
+    if wpctl set-default "$target_id" 2>/dev/null; then
         notify "Switched active device to: ${clean_name}"
     else
         notify "Failed to switch device to ID: ${target_id}"
