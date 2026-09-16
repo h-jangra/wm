@@ -1,0 +1,134 @@
+<?xml encoding="UTF-8" version="1.0"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<unique-id>1700000000000001-1</unique-id>
+	<command>foot -D %f</command>
+	<description>Open foot terminal in current directory</description>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>text-editor</icon>
+	<name>Edit in Neovim</name>
+	<unique-id>1700000000000007-7</unique-id>
+	<command>foot -e nvim %f</command>
+	<description>Open selected file in Neovim editor</description>
+	<patterns>*</patterns>
+	<text-files/>
+	<other-files/>
+</action>
+<action>
+	<icon>preferences-desktop-wallpaper</icon>
+	<name>Set as Wallpaper</name>
+	<unique-id>1700000000000004-4</unique-id>
+	<command>wallpaper-manager set %f</command>
+	<description>Set selected image as active desktop wallpaper</description>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.bmp</patterns>
+	<image-files/>
+</action>
+<action>
+	<icon>color-management</icon>
+	<name>Set Wallpaper &amp; Generate Theme</name>
+	<unique-id>1526628754365261-1</unique-id>
+	<command>theme-from-wallpaper %f</command>
+	<description>Set wallpaper and generate dynamic palette across entire rice</description>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.bmp</patterns>
+	<image-files/>
+</action>
+<action>
+	<icon>edit-copy</icon>
+	<name>Copy Absolute Path</name>
+	<unique-id>1700000000000002-2</unique-id>
+	<command>printf '%s' %f | wl-copy -n &amp;&amp; notify-send -h string:x-canonical-private-synchronous:wm-clip "Path Copied" "%f"</command>
+	<description>Copy full file path to clipboard</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>edit-copy</icon>
+	<name>Copy Filename</name>
+	<unique-id>1700000000000003-3</unique-id>
+	<command>printf '%s' %n | wl-copy -n &amp;&amp; notify-send -h string:x-canonical-private-synchronous:wm-clip "Filename Copied" "%n"</command>
+	<description>Copy filename to clipboard</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>package-x-generic</icon>
+	<name>Compress to Archive</name>
+	<unique-id>1700000000000005-5</unique-id>
+	<command>tar -czvf "%f.tar.gz" -C "$(dirname "%f")" "$(basename "%f")" &amp;&amp; notify-send -h string:x-canonical-private-synchronous:wm-archive "Archive Created" "%f.tar.gz"</command>
+	<description>Compress selected item into a .tar.gz archive</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>archive-extract</icon>
+	<name>Extract Archive Here</name>
+	<unique-id>1700000000000006-6</unique-id>
+	<command>sh -c 'dir="$(dirname "%f")"; case "%f" in *.tar.gz|*.tgz) tar -xzf "%f" -C "$dir" ;; *.tar.bz2|*.tbz2) tar -xjf "%f" -C "$dir" ;; *.tar.xz|*.txz) tar -xJf "%f" -C "$dir" ;; *.zip) unzip -o "%f" -d "$dir" ;; *.tar) tar -xf "%f" -C "$dir" ;; esac &amp;&amp; notify-send -h string:x-canonical-private-synchronous:wm-archive "Archive Extracted" "$(basename "%f")"'</command>
+	<description>Extract archive contents into the current directory</description>
+	<patterns>*.tar;*.tar.gz;*.tgz;*.tar.bz2;*.tbz2;*.tar.xz;*.txz;*.zip</patterns>
+	<other-files/>
+</action>
+<action>
+	<icon>system-file-manager-root</icon>
+	<name>Open Folder as Root</name>
+	<unique-id>1493475601060449-3</unique-id>
+	<command>pkexec thunar %f</command>
+	<description>Open directory as administrator</description>
+	<patterns>*</patterns>
+	<directories/>
+</action>
+<action>
+	<icon>insert-link-symbolic</icon>
+	<name>Create Symlink</name>
+	<unique-id>1526631663081446-14</unique-id>
+	<command>ln -s %f "%n.link"</command>
+	<description>Create a symbolic link</description>
+	<patterns>*</patterns>
+	<directories/>
+	<other-files/>
+	<text-files/>
+	<image-files/>
+	<audio-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>application-x-executable</icon>
+	<name>Make Executable</name>
+	<unique-id>1526670239648084-2</unique-id>
+	<command>chmod +x %f</command>
+	<description>Add execute permissions to file</description>
+	<patterns>*</patterns>
+	<other-files/>
+	<text-files/>
+</action>
+<action>
+	<icon>checkbox</icon>
+	<name>Check SHA256</name>
+	<unique-id>1526633271260079-26</unique-id>
+	<command>notify-send -h string:x-canonical-private-synchronous:hash "SHA256: %n" "$(sha256sum %f | awk '{print $1}')"</command>
+	<description>Calculate SHA256 checksum</description>
+	<patterns>*</patterns>
+	<other-files/>
+</action>
+</actions>

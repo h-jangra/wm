@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# launch-audio: Toggle wiremix audio mixer and ensure instant keyboard focus
+# ==============================================================================
+set -euo pipefail
+
+# If wiremix is already running, toggle it closed
+if pgrep -x wiremix >/dev/null 2>&1; then
+    pkill -x wiremix 2>/dev/null || true
+    exit 0
+fi
+
+# Launch wiremix in floating foot window with dedicated app-id
+if command -v wiremix >/dev/null 2>&1; then
+    if command -v footclient >/dev/null 2>&1 && footclient --version >/dev/null 2>&1; then
+        footclient -a wiremix -w 820x720 -T "wiremix" -e wiremix "$@" &
+    elif command -v foot >/dev/null 2>&1; then
+        foot --app-id=wiremix -w 820x720 -T "wiremix" -e wiremix "$@" &
+    else
+        wiremix "$@" &
+    fi
+elif command -v pavucontrol >/dev/null 2>&1; then
+    pavucontrol &
+elif command -v rofi-audio >/dev/null 2>&1; then
+    rofi-audio
+fi
+
+# Ensure the newly created window gets immediate keyboard focus
+sleep 0.12
+if command -v mmsg >/dev/null 2>&1; then
+    wid=$(mmsg get all-clients 2>/dev/null | jq -r '.clients[]? | select(.appid=="wiremix" or .title=="wiremix") | .id' 2>/dev/null | tail -n 1 || true)
+    if [[ -n "$wid" && "$wid" != "null" ]]; then
+        mmsg dispatch focusid,"$wid" >/dev/null 2>&1 || true
+    fi
+fi

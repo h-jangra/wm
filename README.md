@@ -1,392 +1,369 @@
 # Minimalist Void Linux Desktop Rice (MangoWC)
 
-A custom, minimal, keyboard-first Wayland desktop environment for **Void Linux** built around **MangoWC**.
+A clean, modular, keyboard-driven Wayland desktop environment for **Void Linux** built around **MangoWC**.
 
-Designed by fusing the clean visual polish of **Omarchy 3** with the lightweight, utilitarian Rofi workflows of **Archcraft**, built natively for Void Linux and Wayland.
+Designed by fusing the visual polish of modern minimal rice aesthetics with the lightweight, utilitarian modularity of standalone components, tailored natively for Void Linux, runit, and Wayland.
 
 ---
 
-## 1. Overview & Architecture
+## 1. Architecture & Core Components
 
-- **Operating System**: [Void Linux](https://voidlinux.org) (glibc or musl)
-- **Init & Service Manager**: `runit`
-- **Login Manager (Recommended)**: [Ly](https://github.com/fairyglade/ly) (Nord TUI display manager)
-- **Wayland Compositor**: [MangoWC](https://github.com/DreamMaoMao/mangowc) (wlroots 0.19 + scenefx tiling compositor)
-- **Status Bar**: [Eww](https://github.com/elkowar/eww) (ElKowars wacky widgets - top bar, rounded corners, dynamic tray, and workspace indicators)
-- **Menu & Launcher**: [Rofi](https://github.com/davatorium/rofi) (Wayland-native application launcher, powermenu, screenshot menu, theme & wallpaper switcher)
-- **Primary Terminal**: [Foot](https://codeberg.org/dnkl/foot) (fast, Wayland-native)
-- **Audio Stack**: [PipeWire](https://pipewire.org) + [WirePlumber](https://pipewire.pages.freedesktop.org/wireplumber/)
-- **Networking**: [NetworkManager](https://networkmanager.dev) (`nmcli` + linktui interface)
-- **Bluetooth**: [BlueZ](http://www.bluez.org) (`bluetoothctl` + linktui interface)
-- **Notifications**: [Mako](https://github.com/emersion/mako)
-- **Wallpapers**: [swaybg](https://github.com/swaywm/swaybg)
-- **Theming**: Dynamic wallpaper-derived palette engine & 18 curated rice themes (Aline, Andrea, Brenda, etc.) + static palettes (Nord, Catppuccin, etc.)
+| Component | Upstream / Technology | Purpose |
+| :--- | :--- | :--- |
+| **Operating System** | [Void Linux](https://voidlinux.org) (glibc & musl) | Rolling-release, systemd-free Linux distribution |
+| **Init & Services** | `runit` | Fast, lightweight UNIX init and service supervision |
+| **Login Manager** | [Ly](https://github.com/fairyglade/ly) | Minimalist TUI display manager running on TTY2 |
+| **Compositor** | [MangoWC](https://github.com/DreamMaoMao/mangowc) | High-performance wlroots + scenefx tiling Wayland compositor |
+| **Primary Status Bar**| [MangoBar](https://github.com/mangowm/mangobar) | Native MangoWC status bar with modular popups and system stats |
+| **Widget Engine** | [Eww](https://github.com/elkowar/eww) | Standalone dashboard, media player, profile card, and OSD widgets |
+| **Application Launcher**| [Rofi-Wayland](https://github.com/davatorium/rofi) | Standalone modal menus for apps, clipboard, power, audio, wifi, etc. |
+| **Terminal** | [Foot](https://codeberg.org/dnkl/foot) | Fast, lightweight, Wayland-native terminal emulator |
+| **Notifications** | [Mako](https://github.com/emersion/mako) | Wayland notification daemon styled dynamically to active theme |
+| **File Manager** | [Thunar](https://docs.xfce.org/xfce/thunar/start) | Fast XFCE file manager with custom actions and dark GTK theme |
+| **Audio Stack** | [PipeWire](https://pipewire.org) + [WirePlumber](https://pipewire.pages.freedesktop.org/wireplumber/) | Low-latency audio server and session manager via `wpctl` |
+| **Network & Bluetooth**| NetworkManager & BlueZ | Robust connectivity managed via standalone Rofi interfaces |
+| **Wallpapers** | [swaybg](https://github.com/swaywm/swaybg) | Minimalist Wayland wallpaper renderer |
+| **Theming Engine** | Python 3 + pywal16 | Dynamic wallpaper palette extraction & 8 curated presets |
 
 ---
 
 ## 2. Directory Structure
 
+The repository is organized into five clean, modular namespaces:
+
 ```text
 ~/wm/
 ├── install.sh                  # Root installer wrapper delegating to system/setup/install.sh
-├── packages.void               # Backward-compatible symlink to packages/void
-├── README.md                   # Documentation & keybindings cheatsheet
+├── packages.void               # Comprehensive Void Linux XBPS package manifest
+├── README.md                   # Complete architectural guide, manual, and cheatsheet
 │
-├── config/                     # Application configurations (symlinked to ~/.config/)
-│   ├── mango/                  # MangoWC compositor configuration (config.conf)
-│   ├── eww/                    # Eww status bar, widgets, and SCSS stylesheets
-│   │   ├── widgets/            # Modular yuck widgets (bar, profilecard, player)
-│   │   ├── styles/             # Modular SCSS stylesheets & theme tokens
-│   │   ├── assets/             # Crisp vector SVG icons and graphics (0 PNGs)
-│   │   ├── scripts/            # Polling and listener scripts (battery, volume, etc.)
-│   │   ├── eww.yuck            # Master widget entrypoint
-│   │   └── eww.scss            # Master stylesheet
-│   ├── rofi/                   # Rofi Wayland menus, launcher, powermenu, screenshot
-│   │   ├── styles/             # 17 presentation styles (style_1 .. style_17)
-│   │   ├── assets/             # Vector preview assets & icons
-│   │   ├── config.rasi         # Base configuration
-│   │   └── shared.rasi         # Active theme palette tokens (auto-compiled)
+├── components/                 # Standalone, reusable desktop UI components
+│   ├── mangobar/               # Native MangoWC status bar configuration, styles & helpers
+│   │   ├── config.jsonc        # Bar layout and module definitions
+│   │   ├── style.css           # Base GTK stylesheet
+│   │   ├── theme.css           # Active theme color tokens (auto-generated)
+│   │   └── scripts/            # Helper scripts (volume, brightness, battery, etc.)
+│   │
+│   ├── rofi/                   # Modular Rofi menus (standalone per-feature directories)
+│   │   ├── launcher/           # Application launcher (launcher.sh, style_1..3)
+│   │   ├── calendar/           # Interactive month calendar with event indicators
+│   │   ├── clipboard/          # Clipboard history search & manager (cliphist)
+│   │   ├── powermenu/          # Void Linux runit power options (lock, suspend, reboot, off)
+│   │   ├── network/            # Wi-Fi (nmcli) & Bluetooth (bluetoothctl) managers
+│   │   ├── audio/              # PipeWire audio output/sink switcher & volume
+│   │   ├── screenshot/         # Grim/slurp screen snip, window snip, and full capture
+│   │   ├── wallpaper/          # Wallpaper selector and randomizer
+│   │   ├── theme-selector/     # Visual theme switcher with live reload
+│   │   ├── config.rasi         # Global rofi configuration
+│   │   ├── shared.rasi         # Dynamic font & layout definitions
+│   │   └── theme.rasi          # Active color variables (symlinked/compiled)
+│   │
+│   ├── eww/                    # ElKowar's Wacky Widgets dashboard & control center
+│   │   ├── widgets/            # Yuck widget modules (bar, player, profilecard)
+│   │   ├── styles/             # Modular SCSS styling & color imports
+│   │   ├── assets/             # Crisp vector SVG icons
+│   │   ├── scripts/            # Polling daemons (battery, game-mode, workspaces)
+│   │   ├── eww.yuck            # Master widget layout
+│   │   └── eww.scss            # Master SCSS stylesheet
+│   │
+│   ├── wallpaper/              # Wallpaper daemon and switching utilities
+│   │   ├── wallpaper-manager   # Backend daemon controlling swaybg & palette sync
+│   │   ├── wallpaper-select    # CLI/menu selector
+│   │   ├── wallpaper-random    # Randomize wallpaper from active preset or directory
+│   │   └── wallpaper-switch    # Apply specific wallpaper path
+│   │
+│   └── themes/                 # Universal theming engine & presets
+│       ├── definitions/        # Curated JSON color schemes (catppuccin, nord, gruvbox, etc.)
+│       ├── presets/            # Curated rice presets with bundled wallpapers
+│       │   ├── catppuccin-mocha/
+│       │   ├── everforest/
+│       │   ├── gruvbox-dark/
+│       │   ├── kanagawa/
+│       │   ├── matte-black/
+│       │   ├── nord/
+│       │   ├── rose-pine/
+│       │   └── tokyo-night/
+│       ├── generated/          # Auto-generated runtime theme files (gitignored)
+│       ├── theme-engine.py     # Central cross-desktop compiler (Mango, Bar, Foot, Rofi, Mako)
+│       ├── theme-switch        # CLI wrapper to apply preset
+│       ├── theme-from-wallpaper# Dynamic pywal16 extractor from arbitrary images
+│       └── generate-palette    # Shell helper generating palette tokens
+│
+├── dotfiles/                   # Standard user dotfiles (symlinked directly to ~/.config/)
+│   ├── mango/                  # MangoWC compositor config (config.conf)
 │   ├── foot/                   # Foot terminal configuration (foot.ini, colors.ini)
-│   ├── mako/                   # Mako notification daemon configuration
-│   ├── gtk-3.0/                # GTK3/4 styles, theme.css, and settings.ini
-│   ├── thunar/                 # Thunar file manager preferences (thunar.xml)
+│   ├── mako/                   # Mako notification daemon configuration (config)
+│   ├── gtk-3.0/                # GTK3/4 styles (gtk.css, settings.ini)
+│   ├── thunar/                 # Thunar file manager settings (thunar.xml, uca.xml)
 │   ├── btop/                   # btop system monitor configuration & themes
-│   ├── fontconfig/             # Typography and font preferences (fonts.conf)
-│   ├── fuzzel/                 # Fuzzel minimal fallback launcher configuration
-│   └── ly/                     # Ly display manager configuration (config.ini)
+│   └── fontconfig/             # Typography and font preferences (fonts.conf)
 │
-├── themes/                     # Central theme architecture
-│   ├── definitions/            # Curated JSON color palettes (Catppuccin, Nord, Tokyo Night, etc.)
-│   ├── presets/                # 18 curated rice presets (aline .. z0mbi3)
-│   │   └── <theme>/            # theme.conf, wallpapers/, preview.webp, overrides/
-│   └── generated/              # Compiled runtime themes (palette.json, palette.css, foot.ini, etc.)
+├── assets/                     # High-quality vector assets and typography
+│   ├── fonts/                  # Bundled icon & monospace fonts (Maple Mono, Material Symbols)
+│   └── icons/                  # Scalable vector graphics (SVG)
 │
-├── scripts/                    # Categorized Void-native utility scripts
-│   ├── launcher/               # rofi-launcher, rofi-clipboard, rofi-calendar
-│   ├── power/                  # rofi-powermenu, rofi-power-profile, battery-status
-│   ├── screenshot/             # rofi-screenshot
-│   ├── theme/                  # theme-engine.py, theme-switch, theme-select, theme-from-wallpaper
-│   ├── wallpaper/              # wallpaper-manager, wallpaper-select, wallpaper-random
-│   ├── media/                  # volume, brightness, rofi-audio, launch-audio
-│   ├── network/                # rofi-wifi, rofi-bluetooth, launch-wifi, launch-bluetooth
-│   ├── system/                 # start-mango, reload, backup, restore, fix-* scripts
-│   └── diagnostics/            # wm-doctor
-│
-├── system/                     # System integration and setup
-│   ├── services/               # mango.desktop, pipewire-launcher.sh, runit-setup.sh
-│   └── setup/                  # install.sh (primary installer implementation)
-│
-├── packages/                   # Distribution package manifests
-│   └── void                    # Minimal essential Void Linux XBPS packages
-│
-├── assets/                     # High-quality vector assets
-│   ├── fonts/                  # Curated fonts (Maple Mono, Material Symbols, Nerd Fonts)
-│   └── icons/                  # Crisp SVG action and notification icons (0 PNGs)
-│
-├── wallpapers/                 # Curated minimal wallpapers (and preset wallpapers)
-└── state/                      # Runtime state tracking (current theme, mode, launcher style)
+└── system/                     # System services, installation, scripts & diagnostics
+    ├── services/               # Runit services, Wayland desktop session, Ly config
+    │   ├── mango.desktop       # Wayland session descriptor (/usr/share/wayland-sessions/)
+    │   ├── pipewire-launcher.sh# User-session PipeWire/WirePlumber starter
+    │   ├── runit-setup.sh      # Service enablement helper for Void runit
+    │   └── ly/config.ini       # Ly display manager minimal configuration
+    ├── setup/
+    │   └── install.sh          # Idempotent master installer implementation
+    ├── diagnostics/
+    │   └── wm-doctor           # Comprehensive 34-point system health check
+    └── scripts/                # System management utilities
+        ├── start-mango         # Wayland session launcher & environment setup
+        ├── reload              # Live hot-reloader for all desktop components
+        ├── backup              # Idempotent user configuration backup tool
+        ├── restore             # Rollback utility restoring previous configurations
+        ├── audio-check         # Diagnostic tool for PipeWire sinks and sources
+        ├── fix-audio           # Automated repair script for PipeWire/ALSA stack
+        ├── fix-bluetooth       # Automated repair script for BlueZ / rfkill
+        └── fix-dbus            # Automated repair script for system & session DBus
 ```
 
 ---
 
-## 3. Installation
+## 3. Component Independence & Modularity
+
+Each component in `components/` and `dotfiles/` is engineered to be **self-contained**:
+- **Independent Usage**: You can extract and copy `components/rofi/`, `components/mangobar/`, or `components/eww/` to any Linux system running Wayland and use it without needing the rest of the repository.
+- **Relative Path Resolution**: All scripts calculate their own location dynamically via `BASH_SOURCE` and `dirname`, freeing them from hardcoded paths like `/home/hj/wm` or `~/wm`.
+- **Runtime State Decoupling**: All mutable state (such as the active theme name, mode, and launcher style) is stored outside the Git repository in `${XDG_STATE_HOME:-$HOME/.local/state}/wm` and `${XDG_CACHE_HOME:-$HOME/.cache}/wm`. The Git working tree remains permanently clean.
+- **Self-Contained Rofi Menus**: Every feature inside `components/rofi/<feature>/` includes relative style links to parent tokens, allowing both modular invocation (`bash components/rofi/powermenu/powermenu.sh`) and system-wide execution (`rofi-powermenu`).
+
+---
+
+## 4. Installation Guide
 
 ### Quick Start on Void Linux
 
+Clone the repository and run the installer:
+
 ```bash
-git clone https://github.com/your-username/wm.git ~/wm
+git clone https://github.com/h-jangra/wm.git ~/wm
 cd ~/wm
 ./install.sh
 ```
 
-Or configure with flags (e.g. unattended mode, mirror selection, or Ly login manager):
+### Installation Options & CLI Flags
+
+The installer is completely idempotent and safe to run multiple times. Supported flags include:
+
 ```bash
-./install.sh -y --login-manager ly
-# Or launch xmirror to pick a regional/community mirror:
+# Non-interactive installation (answers yes to prompts):
+./install.sh -y
+
+# Configure Ly as the default login manager on TTY2:
+./install.sh --login-manager ly
+
+# Interactively select an official XBPS mirror with xmirror:
 ./install.sh --mirror
 
-# Or run dedicated subsystem repair modules directly:
+# Force compilation of MangoBar from source via meson:
+./install.sh --build-mangobar
+
+# Force compilation of Ly display manager from source:
+./install.sh --build-ly
+
+# Skip extra repositories (nonfree and multilib):
+./install.sh --no-extra-repos
+
+# Run targeted system repair modules directly:
 ./install.sh --fix-audio
 ./install.sh --fix-dbus
 ./install.sh --fix-bluetooth
 ```
 
-The installer will:
-1. Verify that your system is Void Linux.
-2. Ensure official Void extra repositories (`void-repo-nonfree`, `void-repo-multilib`, `void-repo-multilib-nonfree`) and `xmirror` are enabled, and sync XBPS indexes.
-3. Accurately detect and install all missing packages from `packages.void` using `xbps-install`.
-4. Enable essential `runit` services (`dbus`, `elogind`, `NetworkManager`, `bluetoothd`, `polkitd`) and disable conflicting daemons (`dhcpcd`, `wpa_supplicant`).
-5. Add your user to hardware groups (`video`, `audio`, `input`, `network`, `bluetooth`).
-6. Idempotently symlink configurations to `~/.config/` without generating redundant backups.
-7. Install icon fonts to `~/.local/share/fonts/wm/` and update `fc-cache`.
-8. Ensure Wayland session entry `/usr/share/wayland-sessions/mango.desktop` is present.
-9. Link all desktop utility scripts and helpers into `/usr/local/bin/` and `~/.local/bin/`.
-10. Optionally configure or compile Ly DM, create its runit service and PAM configuration, and resolve TTY2 conflicts.
-11. Execute `scripts/wm-doctor` to verify your environment.
+### What the Installer Does
+
+1. **OS Detection**: Validates that the system is running Void Linux.
+2. **Repository Setup**: Enables official Void Linux `nonfree` and `multilib` repositories and syncs XBPS repository indexes.
+3. **Package Installation**: Audits installed packages against `packages.void` and installs any missing utilities via `xbps-install`.
+4. **MangoBar Check**: Verifies if `mangobar` is available; builds it from upstream source if absent.
+5. **Runit Services**: Enables required system services (`dbus`, `elogind`, `NetworkManager`, `bluetoothd`, `polkitd`) and disables conflicting network daemons (`dhcpcd`, `wpa_supplicant`).
+6. **User Permissions**: Adds your user to essential hardware groups: `video`, `audio`, `input`, `network`, `bluetooth`.
+7. **Idempotent Symlinking**: Symlinks `dotfiles/*` and `components/*` cleanly to `~/.config/`, safely backing up any conflicting user files to `~/.config/wm-backups-<timestamp>/`.
+8. **Font Installation**: Installs bundled typography and icon fonts to `~/.local/share/fonts/wm/` and triggers `fc-cache`.
+9. **Desktop Binaries**: Symlinks all component scripts and helpers into `~/.local/bin/` and `/usr/local/bin/` for instant access.
+10. **Session Entry**: Installs `/usr/share/wayland-sessions/mango.desktop` configured with `dbus-run-session mangowc`.
+11. **Initial Theme**: Compiles the default Catppuccin-Mocha theme palette and initializes `${XDG_STATE_HOME:-$HOME/.local/state}/wm`.
+12. **Verification**: Executes `wm-doctor` to run a 34-point sanity check on the environment.
 
 ---
 
-## 4. Login Manager & Session Startup
+## 5. Starting the Session
 
-### Boot Flow
-When a display manager is configured, you do **not** need to type `start-mango` manually after each boot:
+### Option 1: Via Login Manager (Ly - Recommended)
+If configured during installation, your machine boots directly into Ly on TTY2. Select the **MangoWC** session to start the desktop.
 
-```text
-Boot
- └── runit initializes services (dbus, elogind, NetworkManager)
-      └── Ly launches on TTY2
-           └── Select "MangoWC" session (automatically saved after first login)
-                └── Ly executes /usr/share/wayland-sessions/mango.desktop
-                     └── scripts/start-mango sets Wayland environment
-                          ├── MangoWC Compositor
-                          ├── Waybar (Status Bar)
-                          ├── Mako (Notifications)
-                          ├── Swaybg (Nord Wallpaper)
-                          └── PipeWire + WirePlumber (Audio stack)
-```
-
-### 1. Recommended: Ly (TUI Display Manager)
-[Ly](https://github.com/fairyglade/ly) is the recommended display manager for this rice:
-- Extremely lightweight (~2–4 MB RAM consumption, ncurses-like TUI).
-- No heavy web engines or Qt/GTK dependencies.
-- Beautifully styled with the repository's **Nord palette** (`bg = #2E3440`, `fg = #D8DEE9`, `border = #88C0D0`).
-- Distraction-free (animations disabled, clean borders).
-- Automatically saves and reloads your previous user and desktop session.
-
-#### Automated Setup
-```bash
-cd ~/wm
-./install.sh --login-manager ly
-```
-
-#### Manual Setup
-1. **Build & Install Ly**:
-   ```bash
-   sudo xbps-install -Sy git zig pam-devel libxcb-devel make
-   git clone --depth 1 https://github.com/fairyglade/ly.git
-   cd ly
-   zig build -Doptimize=ReleaseFast
-   sudo zig build installnoconf -Dinit_system=runit -Doptimize=ReleaseFast
-   ```
-2. **Deploy Configuration & Session File**:
-   ```bash
-   sudo mkdir -p /etc/ly
-   sudo cp ~/wm/config/ly/config.ini /etc/ly/config.ini
-   # Deploy repository mango.desktop template (configured with dbus-run-session mangowc):
-   sudo mkdir -p /usr/share/wayland-sessions
-   sudo cp ~/wm/system/services/mango.desktop /usr/share/wayland-sessions/
-   ```
-3. **Enable Runit Service**:
-   ```bash
-   # Disable conflicting display managers
-   sudo rm -f /var/service/sddm /var/service/lightdm /var/service/gdm /var/service/greetd
-   # Disable getty on TTY2 to avoid conflict
-   sudo rm -f /var/service/agetty-tty2
-   # Enable Ly
-   sudo ln -s /etc/sv/ly /var/service/
-   ```
-See [config/ly/README.md](file:///home/hj/wm/config/ly/README.md) for full details and source compilation instructions.
-
-### 2. Alternative: SDDM (Graphical Display Manager)
-If you prefer a full graphical login manager:
-```bash
-sudo xbps-install -Sy sddm
-# Disable conflicting display managers first
-sudo rm -f /var/service/ly /var/service/lightdm
-sudo ln -s /etc/sv/sddm /var/service/
-```
-SDDM automatically detects MangoWC through the installed `/usr/share/wayland-sessions/mango.desktop`.
-
-### 3. Manual TTY Fallback (`start-mango`)
-A display manager is completely optional. You can always boot directly to a console TTY and launch the desktop manually:
-
+### Option 2: Manual Console Launch (`start-mango`)
+If booting to a standard console TTY, simply run:
 ```bash
 start-mango
-# or directly by path:
-~/wm/scripts/start-mango
 ```
 
-To automatically launch MangoWC upon logging in on `tty1`, append to `~/.bash_profile` or `~/.zprofile`:
+To automatically start MangoWC upon login on `tty1`, add the following to `~/.bash_profile` or `~/.zprofile`:
 ```bash
 if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
     exec start-mango
 fi
 ```
 
-### 4. Safe Rollback & Emergency Recovery
-If a display manager fails to start or locks you out:
-1. Press `Ctrl + Alt + F3` (or `F4` / `F5`) to switch to another console TTY.
-2. Log in with your standard username and password.
-3. Disable the display manager service immediately:
-   ```bash
-   sudo rm -f /var/service/ly /var/service/sddm
-   ```
-4. Restore the default console login on TTY2 (if needed):
-   ```bash
-   sudo ln -s /etc/sv/agetty-tty2 /var/service/
-   ```
-5. Launch MangoWC directly:
-   ```bash
-   start-mango
-   ```
-
 ---
 
-## 5. Keybindings Cheatsheet
+## 6. Keybindings Cheatsheet
 
-All primary desktop shortcuts use the **Super** key:
+All primary shortcuts use the **Super** (Windows) key:
 
-| Shortcut | Action | Description |
+| Shortcut | Action | Command / Target |
 | :--- | :--- | :--- |
-| `Super + Return` | **Terminal** | Launches Foot terminal client |
-| `Super + E` | **File Manager** | Launches Thunar file manager |
-| `Super + W` | **Browser** | Launches Firefox browser |
-| `Super + D` | **App Launcher** | Opens Rofi application launcher (`rofi-launcher`) |
-| `Super + Space`| **App Launcher** | Alternative Rofi launcher shortcut |
-| `Super + Q` | **Close Window** | Closes the focused application (`killclient`) |
-| `Super + Escape` | **Power Menu** | Opens Rofi power menu (`rofi-powermenu`) |
-| `Super + T` | **Theme Selector** | Interactive Rofi theme selector with previews |
-| `Super + Ctrl + T` | **Dynamic Theme** | Regenerates theme palette from current wallpaper |
-| `Super + Shift + W`| **Wallpaper Menu**| Interactive Rofi wallpaper picker & randomizer |
-| `Super + S` | **Screenshot** | Opens Rofi screenshot menu (`rofi-screenshot`) |
-| `Print` | **Screenshot** | Alternative screenshot menu shortcut |
-| `Super + V` | **Clipboard** | Interactive Rofi clipboard history search (cliphist) |
-| `Super + R` | **Reload Config** | Hot-reloads MangoWC configuration |
-| `Super + F` | **Fullscreen** | Toggles fullscreen mode |
-| `Super + C` | **Float Window** | Toggles window floating mode |
-| `Super + O` | **Overlay** | Toggles overlay mode |
-| `Super + Tab` | **Overview** | Toggles window overview |
-| `Super + [1-9]` | **View Tag** | Switch to workspace/tag 1 through 9 |
-| `Super + Shift + [1-9]` | **Move to Tag**| Moves active window to workspace 1 through 9 |
-| `Super + Left/Right/Up/Down` | **Focus** | Move focus in directional layout |
-| `Super + H/J/K/L` | **Focus** | Vim directional navigation |
+| `Super + Return` | **Terminal** | `footclient` (spawns new client connected to foot server) |
+| `Super + E` | **File Manager** | `thunar` |
+| `Super + W` | **Web Browser** | `firefox` |
+| `Super + D` or `Super + Space` | **App Launcher** | `rofi-launcher` |
+| `Super + Q` | **Close Window** | Closes focused client (`killclient`) |
+| `Super + Escape` | **Power Menu** | `rofi-powermenu` (Lock, Suspend, Reboot, Shutdown) |
+| `Super + T` | **Theme Selector** | `theme-select` (Interactive Rofi theme switcher) |
+| `Super + Ctrl + T` | **Theme from Wallpaper**| `theme-from-wallpaper` (Extracts palette via pywal16) |
+| `Super + Shift + W` | **Wallpaper Menu** | `wallpaper-select` (Interactive Rofi wallpaper browser) |
+| `Super + S` or `Print` | **Screenshot Menu** | `rofi-screenshot` (Selection, window snip, or display) |
+| `Super + V` | **Clipboard Menu** | `clipboard-menu` (Search cliphist clipboard history) |
+| `Super + R` | **Reload Config** | Hot-reloads MangoWC configuration and theme tokens |
+| `Super + F` | **Maximize Screen** | `togglemaximizescreen` |
+| `Super + Shift + F` | **Fullscreen** | `togglefullscreen` |
+| `Super + C` | **Floating Toggle** | `togglefloating` |
+| `Super + O` | **Overlay Mode** | `toggleoverlay` |
+| `Super + Tab` | **Overview Mode** | `toggleoverview` |
+| `Super + L` | **Lock Screen** | `swaylock -c 000000` |
+| `Super + [1-9]` | **Workspace 1-9** | Switch active tag / workspace |
+| `Super + Shift + [1-9]` | **Move Window 1-9** | Move focused window to tag / workspace |
+| `Super + H/J/K/L` | **Focus Navigation** | Focus left, down, up, right (Vim keys) |
+| `Super + Arrow Keys` | **Focus Navigation** | Focus left, down, up, right |
 | `Super + Shift + H/J/K/L` | **Move Window** | Swap window position in tiling tree |
-| `Alt + Print` | **Window Snip** | Copies screenshot of focused window to clipboard |
-| `XF86AudioRaiseVolume` | **Volume Up** | Increases volume (+5%) with OSD |
-| `XF86AudioLowerVolume` | **Volume Down**| Decreases volume (-5%) with OSD |
-| `XF86AudioMute` | **Mute Audio** | Toggles audio sink mute |
-| `XF86AudioMicMute` | **Mute Mic** | Toggles microphone mute |
-| `XF86MonBrightnessUp` | **Bright Up** | Increases backlight (+5%) with OSD |
-| `XF86MonBrightnessDown` | **Bright Down**| Decreases backlight (-5%) with OSD |
+| `Super + Ctrl + Arrow Keys`| **Resize Window** | Resize active tiled window |
+| `Alt + Print` | **Active Window Snip** | Snips focused window and copies to clipboard |
+| `XF86AudioRaiseVolume` | **Volume Up** | Raises audio volume (+5%) with OSD feedback |
+| `XF86AudioLowerVolume` | **Volume Down** | Lowers audio volume (-5%) with OSD feedback |
+| `XF86AudioMute` | **Mute Output** | Toggles audio sink mute |
+| `XF86AudioMicMute` | **Mute Mic** | Toggles microphone source mute |
+| `XF86MonBrightnessUp` | **Brightness Up** | Raises display backlight (+5%) with OSD feedback |
+| `XF86MonBrightnessDown` | **Brightness Down** | Lowers display backlight (-5%) with OSD feedback |
 
 ---
 
-## 6. Subsystem Details
+## 7. Theming & Customization
 
-### Wi-Fi (`Super + N`)
-- Interactive NetworkManager frontend powered by `nmcli`.
-- Discovers networks, visualizes signal strength bars, and prompts for WPA/WPA2 passwords cleanly without opening a terminal.
-- Supports manual rescanning, disconnecting, and toggling Wi-Fi radio on/off.
+The rice features a centralized, cross-desktop theming engine located at `components/themes/theme-engine.py`.
 
-### Bluetooth (`Super + B`)
-- Interactive BlueZ frontend powered by `bluetoothctl`.
-- Lists paired devices with connection state indicators.
-- One-click device connection, pairing, removal, and 5-second device discovery scans.
+### Bundled Presets
+- **Catppuccin Mocha** (`catppuccin-mocha`)
+- **Nord** (`nord`)
+- **Gruvbox Dark** (`gruvbox-dark`)
+- **Everforest** (`everforest`)
+- **Tokyo Night** (`tokyo-night`)
+- **Rose Pine** (`rose-pine`)
+- **Kanagawa** (`kanagawa`)
+- **Matte Black** (`matte-black`)
 
-### Audio (`Super + A`)
-- Powered by native **PipeWire** and **WirePlumber** via `wpctl`.
-- Switch output targets on the fly between Laptop Speakers, Headphones, Bluetooth headsets, and HDMI monitors.
-- Inspect your audio configuration at any time using:
-  ```bash
-  ~/wm/scripts/audio-check
-  ```
+### Switching Themes via CLI
+To switch themes from the command line:
+```bash
+# Switch to a preset theme:
+theme-switch nord
+theme-switch catppuccin-mocha
 
-### Wallpapers (`Super + W`)
-- Ultra-lightweight rendering via `swaybg`.
-- Automatically extracts a matching color palette from the selected wallpaper and hot-reloads Waybar without flickering.
-- Remembers your chosen wallpaper across reboots in `~/.cache/current_wallpaper`.
-- Add your own `.jpg` or `.png` wallpapers to `~/wm/wallpapers/` or `~/Pictures/Wallpapers/`.
-- Quickly randomize wallpapers using `wallpaper-manager random`.
+# Or invoke the compiler directly:
+python3 components/themes/theme-engine.py everforest
+```
 
-### Screenshots (`Super + S`)
-- Powered by `grim`, `slurp`, and `wl-clipboard`.
-- Supports selecting a bounding box, full-screen capture, or capturing the focused client geometry reported by MangoWC's `mmsg`.
-- Automatically saves images to `~/Pictures/Screenshots/` and copies the buffer directly to your clipboard.
+### Dynamic Theming from Any Wallpaper
+Extract a cohesive color palette from any image on your system:
+```bash
+# Automatically extract palette, set wallpaper, and re-theme desktop:
+theme-from-wallpaper ~/Pictures/Wallpapers/my_wallpaper.jpg
+
+# Or press Super + Ctrl + T inside the desktop
+```
+
+### What Theme Engine Updates
+When a theme or wallpaper is applied, `theme-engine.py` atomically compiles and reloads:
+1. **MangoWC**: Window borders, accent colors, and tag indicators (`dotfiles/mango/config.conf`).
+2. **MangoBar**: CSS color tokens (`components/mangobar/theme.css`).
+3. **Rofi**: Active color definitions (`components/rofi/colors.rasi`).
+4. **Foot**: Terminal 16-color palette and background (`dotfiles/foot/colors.ini`).
+5. **Mako**: Notification borders, background, and text colors.
+6. **Eww**: SCSS color tokens (`components/eww/styles/_colors.scss`).
+7. **btop**: System monitor color scheme.
+8. **swaybg**: Wallpaper rendering.
 
 ---
 
-## 7. Troubleshooting & Diagnostics
+## 8. System Diagnostics & Subsystem Repair
 
-### System Health Check (`wm-doctor`)
-Run the built-in diagnostic tool to test your environment:
+### Diagnostics (`wm-doctor`)
+A comprehensive diagnostic utility is available to verify all system services, hardware groups, daemons, and dependencies:
 
 ```bash
 wm-doctor
-# or directly:
-~/wm/scripts/wm-doctor
+# or run directly:
+bash system/diagnostics/wm-doctor
 ```
 
-It validates:
-- Void Linux distribution markers and XBPS availability.
-- MangoWC binary, session script, and Wayland session entry (`mango.desktop`).
-- Core UI tools (`waybar`, `rofi`, `foot`, `mako`, `libnotify`).
-- PipeWire and WirePlumber daemons and sockets.
-- NetworkManager and BlueZ services.
-- `dbus`, `elogind`, and `polkitd` system services.
-- Group permissions (`video`, `audio`, `input`).
-- Typography and icon fonts.
-- Login manager status (Ly) and detects conflicting multiple display managers.
+### Subsystem Repair Scripts
 
-### One-Click Subsystem Fixers
-
-If you encounter issues with audio, DBus, or Bluetooth, dedicated fix modules are available directly or via `install.sh`:
+If an individual subsystem experiences issues, automated fix scripts resolve them:
 
 ```bash
-# Audio: Install packages, configure ALSA PipeWire routing, add audio group, clean sockets, restart daemons:
-./install.sh --fix-audio       # or directly: ~/wm/scripts/fix-audio
+# PipeWire / WirePlumber Audio Stack
+# Verifies ALSA routing, cleans stale runtime sockets, configures permissions, restarts daemons:
+fix-audio
 
-# DBus: Install dbus, ensure machine-id, enable & restart runit service, verify session bus:
-./install.sh --fix-dbus        # or directly: ~/wm/scripts/fix-dbus
+# DBus System & Session Bus
+# Ensures /var/lib/dbus/machine-id, restarts runit service, checks session bus socket:
+fix-dbus
 
-# Bluetooth: Install bluez, enable runit service, configure AutoEnable, add bluetooth group, unblock rfkill:
-./install.sh --fix-bluetooth   # or directly: ~/wm/scripts/fix-bluetooth
+# Bluetooth Daemon & Hardware
+# Enables bluetoothd service, enables AutoEnable in /etc/bluetooth/main.conf, unblocks rfkill:
+fix-bluetooth
 ```
-
-### Audio Stack Troubleshooting
-If you encounter no sound or missing devices:
-```bash
-~/wm/scripts/audio-check
-```
-Ensure user is in the `audio` group (`sudo usermod -aG audio $USER`) and PipeWire session daemons are active (`~/wm/services/pipewire-launcher.sh`).
-
-### Backlight Control
-If `brightnessctl` reports permission denied:
-```bash
-sudo usermod -aG video $USER
-```
-Log out and log back in to apply group changes.
 
 ---
 
-## 8. Backup Restoration & Uninstall
+## 9. Backup, Restoration & Uninstall
 
-If you ever wish to restore your previous configurations:
+### Creating a Manual Backup
 ```bash
-# Locate your backup folder
-ls -d ~/.config/wm-backups-*
+backup
+# Configurations are safely archived into ~/.config/wm-backups-<timestamp>/
+```
 
-# Remove rice symlinks
-rm -f ~/.config/mango ~/.config/eww ~/.config/fuzzel ~/.config/foot ~/.config/mako ~/.config/wm
+### Restoring Configurations
+```bash
+restore
+# Follow interactive prompts to restore an earlier snapshot
+```
 
-# Restore backed-up directories
+### Removing the Rice
+```bash
+# Remove symlinks
+rm -f ~/.config/{mango,mangobar,rofi,eww,foot,mako,Thunar,gtk-3.0,btop,fontconfig,themes,wm}
+
+# Restore your original backup
 cp -r ~/.config/wm-backups-<timestamp>/* ~/.config/
 ```
 
 ---
 
-## 9. Upstream Project References
+## 10. Upstream Projects & Credits
 
-- **MangoWC**: [https://github.com/DreamMaoMao/mangowc](https://github.com/DreamMaoMao/mangowc)
-- **Eww**: [https://github.com/elkowar/eww](https://github.com/elkowar/eww)
-- **Fuzzel**: [https://codeberg.org/dnkl/fuzzel](https://codeberg.org/dnkl/fuzzel)
-- **Ly**: [https://github.com/fairyglade/ly](https://github.com/fairyglade/ly)
-- **Foot**: [https://codeberg.org/dnkl/foot](https://codeberg.org/dnkl/foot)
-- **PipeWire**: [https://pipewire.org](https://pipewire.org)
-- **WirePlumber**: [https://pipewire.pages.freedesktop.org/wireplumber](https://pipewire.pages.freedesktop.org/wireplumber)
-- **NetworkManager**: [https://networkmanager.dev](https://networkmanager.dev)
-- **BlueZ**: [http://www.bluez.org](http://www.bluez.org)
-- **Mako**: [https://github.com/emersion/mako](https://github.com/emersion/mako)
-- **swaybg**: [https://github.com/swaywm/swaybg](https://github.com/swaywm/swaybg)
-- **grim**: [https://git.sr.ht/~emersion/grim](https://git.sr.ht/~emersion/grim)
-- **slurp**: [https://git.sr.ht/~emersion/slurp](https://git.sr.ht/~emersion/slurp)
-- **Void Linux**: [https://voidlinux.org](https://voidlinux.org)
+- [MangoWC](https://github.com/DreamMaoMao/mangowc) - Lightweight wlroots + scenefx Wayland compositor
+- [MangoBar](https://github.com/mangowm/mangobar) - Status bar for MangoWC
+- [Eww](https://github.com/elkowar/eww) - ElKowar's Wacky Widgets
+- [Rofi-Wayland](https://github.com/davatorium/rofi) - Application launcher and menu provider
+- [Foot](https://codeberg.org/dnkl/foot) - Fast, lightweight Wayland terminal emulator
+- [Ly](https://github.com/fairyglade/ly) - Minimalist TUI display manager
+- [PipeWire](https://pipewire.org) & [WirePlumber](https://pipewire.pages.freedesktop.org/wireplumber/) - Linux multimedia framework
+- [pywal16](https://github.com/eylles/pywal16) - 16-color palette generator
+- [Void Linux](https://voidlinux.org) - The independent Linux distribution

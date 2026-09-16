@@ -6,9 +6,21 @@ __pycache__/
 *~
 *.swp
 *.bak
+*.bak.*
+*.tmp
 
-# Local backups and virtualenvs
+# Local backups and virtual environments
 backups/
 .venv/
 venv/
 *.log
+*.pid
+
+# Runtime State & Cache
+state/
+.cache/
+scratch/
+build/
+
+# Generated Theme Artifacts
+components/themes/generated/

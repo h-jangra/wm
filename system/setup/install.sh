@@ -104,13 +104,13 @@ done
 # Handle standalone subsystem fix modules if requested
 if [[ $FIX_DBUS -eq 1 || $FIX_AUDIO -eq 1 || $FIX_BLUETOOTH -eq 1 ]]; then
     if [[ $FIX_DBUS -eq 1 ]]; then
-        "$REPO_DIR/scripts/system/fix-dbus"
+        "$REPO_DIR/system/scripts/fix-dbus"
     fi
     if [[ $FIX_AUDIO -eq 1 ]]; then
-        "$REPO_DIR/scripts/system/fix-audio"
+        "$REPO_DIR/system/scripts/fix-audio"
     fi
     if [[ $FIX_BLUETOOTH -eq 1 ]]; then
-        "$REPO_DIR/scripts/system/fix-bluetooth"
+        "$REPO_DIR/system/scripts/fix-bluetooth"
     fi
     exit 0
 fi
@@ -412,17 +412,17 @@ msg_info "Setting up configuration symlinks..."
 mkdir -p "$HOME/.config"
 
 CONFIG_TARGETS=(
-    "config/mango:mango"
-    "config/mangobar:mangobar"
-    "config/eww:eww"
-    "config/rofi:rofi"
-    "config/foot:foot"
-    "config/mako:mako"
-    "config/fontconfig:fontconfig"
-    "config/thunar:Thunar"
-    "config/gtk-3.0:gtk-3.0"
-    "config/btop:btop"
-    "themes:themes"
+    "dotfiles/mango:mango"
+    "components/mangobar:mangobar"
+    "components/rofi:rofi"
+    "dotfiles/foot:foot"
+    "dotfiles/mako:mako"
+    "dotfiles/fontconfig:fontconfig"
+    "dotfiles/thunar:Thunar"
+    "dotfiles/gtk-3.0:gtk-3.0"
+    "dotfiles/btop:btop"
+    "components/eww:eww"
+    "components/themes:themes"
 )
 
 backup_needed=0
@@ -465,12 +465,16 @@ for target in "${CONFIG_TARGETS[@]}"; do
     msg_ok "Linked '$dst_path' -> '$src_path'."
 done
 
-# Ensure themes/foot.ini and config/foot/colors.ini exist for Foot terminal
-if [[ ! -e "$REPO_DIR/themes/foot.ini" && -f "$REPO_DIR/themes/generated/foot.ini" ]]; then
-    ln -sfn "generated/foot.ini" "$REPO_DIR/themes/foot.ini"
+# Ensure XDG state and cache directories exist for runtime mutable data
+mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/wm"
+mkdir -p "$HOME/.cache/wm"
+
+# Ensure themes/foot.ini and dotfiles/foot/colors.ini exist for Foot terminal
+if [[ ! -e "$REPO_DIR/components/themes/foot.ini" && -f "$REPO_DIR/components/themes/generated/foot.ini" ]]; then
+    ln -sfn "generated/foot.ini" "$REPO_DIR/components/themes/foot.ini"
 fi
-if [[ ! -f "$REPO_DIR/config/foot/colors.ini" && -f "$REPO_DIR/themes/generated/foot.ini" ]]; then
-    cp "$REPO_DIR/themes/generated/foot.ini" "$REPO_DIR/config/foot/colors.ini"
+if [[ ! -f "$REPO_DIR/dotfiles/foot/colors.ini" && -f "$REPO_DIR/components/themes/generated/foot.ini" ]]; then
+    cp "$REPO_DIR/components/themes/generated/foot.ini" "$REPO_DIR/dotfiles/foot/colors.ini"
 fi
 
 # Symlink entire wm repository to ~/.config/wm for convenience (idempotent)
@@ -482,16 +486,16 @@ fi
 
 # Thunar xfconf configuration (~/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml)
 mkdir -p "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
-if [[ ! -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml" ]] || ! cmp -s "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"; then
-    cp "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
+if [[ ! -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml" ]] || ! cmp -s "$REPO_DIR/dotfiles/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"; then
+    cp "$REPO_DIR/dotfiles/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
     msg_ok "Configured Thunar preferences (xfce4/thunar.xml)."
 fi
 
 # GTK 4.0 theme configuration (~/.config/gtk-4.0)
 mkdir -p "$HOME/.config/gtk-4.0"
-if [[ -f "$REPO_DIR/config/gtk-3.0/gtk.css" ]]; then
-    ln -sf "$REPO_DIR/config/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
-    ln -sf "$REPO_DIR/config/gtk-3.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
+if [[ -f "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" ]]; then
+    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
+    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
     msg_ok "Configured GTK 4.0 dark theme symlinks."
 fi
 
@@ -538,35 +542,89 @@ fi
 # 8. Script Permissions & System Binaries (Idempotent)
 # ------------------------------------------------------------------------------
 msg_info "Setting script execution permissions..."
-chmod +x "$REPO_DIR"/scripts/* "$REPO_DIR"/scripts/*/* "$REPO_DIR"/system/services/* 2>/dev/null || true
-msg_ok "Scripts in scripts/ and system/services/ are executable."
+chmod +x "$REPO_DIR"/components/mangobar/scripts/* \
+         "$REPO_DIR"/components/rofi/*/*.sh \
+         "$REPO_DIR"/components/eww/scripts/* \
+         "$REPO_DIR"/components/wallpaper/* \
+         "$REPO_DIR"/components/themes/theme-* \
+         "$REPO_DIR"/components/themes/generate-palette \
+         "$REPO_DIR"/system/scripts/* \
+         "$REPO_DIR"/system/services/*.sh \
+         "$REPO_DIR"/system/diagnostics/* \
+         "$REPO_DIR"/system/setup/install.sh \
+         "$REPO_DIR"/install.sh 2>/dev/null || true
+msg_ok "Desktop scripts, component helpers, and services made executable."
 
-# Symlink all desktop scripts to /usr/local/bin for global accessibility
-if command -v sudo >/dev/null 2>&1; then
-    sudo mkdir -p /usr/local/bin
-    for script in "$REPO_DIR"/scripts/*/* "$REPO_DIR"/system/services/pipewire-launcher.sh; do
-        if [[ -f "$script" && -x "$script" ]]; then
-            script_name="$(basename "$script")"
-            sudo ln -sf "$script" "/usr/local/bin/$script_name"
-        fi
-    done
-    if command -v mango >/dev/null 2>&1 && ! command -v mangowc >/dev/null 2>&1; then
-        sudo ln -sf "$(command -v mango)" /usr/local/bin/mangowc
-    fi
-    msg_ok "Desktop scripts and helpers linked into /usr/local/bin/."
-fi
+# Symlink all desktop scripts to /usr/local/bin and ~/.local/bin
+desktop_scripts=(
+    "$REPO_DIR/components/mangobar/scripts/"*
+    "$REPO_DIR/components/rofi/launcher/launcher.sh"
+    "$REPO_DIR/components/rofi/launcher/rofi-launcher"
+    "$REPO_DIR/components/rofi/calendar/calendar.sh"
+    "$REPO_DIR/components/rofi/calendar/rofi-calendar"
+    "$REPO_DIR/components/rofi/clipboard/clipboard.sh"
+    "$REPO_DIR/components/rofi/clipboard/rofi-clipboard"
+    "$REPO_DIR/components/rofi/clipboard/clipboard-menu"
+    "$REPO_DIR/components/rofi/powermenu/powermenu.sh"
+    "$REPO_DIR/components/rofi/powermenu/rofi-powermenu"
+    "$REPO_DIR/components/rofi/network/wifi.sh"
+    "$REPO_DIR/components/rofi/network/rofi-wifi"
+    "$REPO_DIR/components/rofi/network/bluetooth.sh"
+    "$REPO_DIR/components/rofi/network/rofi-bluetooth"
+    "$REPO_DIR/components/rofi/audio/audio.sh"
+    "$REPO_DIR/components/rofi/audio/rofi-audio"
+    "$REPO_DIR/components/rofi/screenshot/screenshot.sh"
+    "$REPO_DIR/components/rofi/screenshot/rofi-screenshot"
+    "$REPO_DIR/components/rofi/wallpaper/wallpaper.sh"
+    "$REPO_DIR/components/rofi/wallpaper/rofi-wallpaper"
+    "$REPO_DIR/components/rofi/theme-selector/theme-selector.sh"
+    "$REPO_DIR/components/rofi/theme-selector/rofi-theme"
+    "$REPO_DIR/components/rofi/theme-selector/theme-select"
+    "$REPO_DIR/components/eww/scripts/eww-toggle"
+    "$REPO_DIR/components/wallpaper/wallpaper-manager"
+    "$REPO_DIR/components/wallpaper/wallpaper-switch"
+    "$REPO_DIR/components/wallpaper/wallpaper-random"
+    "$REPO_DIR/components/wallpaper/wallpaper-select"
+    "$REPO_DIR/components/themes/theme-engine.py"
+    "$REPO_DIR/components/themes/theme-switch"
+    "$REPO_DIR/components/themes/theme-from-wallpaper"
+    "$REPO_DIR/components/themes/generate-palette"
+    "$REPO_DIR/system/scripts/start-mango"
+    "$REPO_DIR/system/scripts/reload"
+    "$REPO_DIR/system/scripts/backup"
+    "$REPO_DIR/system/scripts/restore"
+    "$REPO_DIR/system/scripts/audio-check"
+    "$REPO_DIR/system/scripts/fix-audio"
+    "$REPO_DIR/system/scripts/fix-bluetooth"
+    "$REPO_DIR/system/scripts/fix-dbus"
+    "$REPO_DIR/system/services/pipewire-launcher.sh"
+    "$REPO_DIR/system/diagnostics/wm-doctor"
+)
 
-# Ensure user-local ~/.local/bin also has links
 mkdir -p "$HOME/.local/bin"
-for script in "$REPO_DIR"/scripts/*/* "$REPO_DIR"/system/services/pipewire-launcher.sh; do
-    if [[ -f "$script" && -x "$script" ]]; then
+for script in "${desktop_scripts[@]}"; do
+    if [[ -f "$script" || -L "$script" ]] && [[ -x "$script" ]]; then
         script_name="$(basename "$script")"
         ln -sf "$script" "$HOME/.local/bin/$script_name"
     fi
 done
+
+if command -v sudo >/dev/null 2>&1; then
+    sudo mkdir -p /usr/local/bin
+    for script in "${desktop_scripts[@]}"; do
+        if [[ -f "$script" || -L "$script" ]] && [[ -x "$script" ]]; then
+            script_name="$(basename "$script")"
+            sudo ln -sf "$script" "/usr/local/bin/$script_name" 2>/dev/null || true
+        fi
+    done
+    if command -v mango >/dev/null 2>&1 && ! command -v mangowc >/dev/null 2>&1; then
+        sudo ln -sf "$(command -v mango)" /usr/local/bin/mangowc 2>/dev/null || true
+    fi
+fi
 if command -v mango >/dev/null 2>&1 && ! command -v mangowc >/dev/null 2>&1; then
     ln -sf "$(command -v mango)" "$HOME/.local/bin/mangowc"
 fi
+msg_ok "Desktop scripts and helpers linked into ~/.local/bin and /usr/local/bin."
 
 # Wayland session desktop entry:
 msg_info "Configuring Wayland session entry for MangoWC (dbus-run-session mangowc)..."
@@ -598,14 +656,14 @@ if [[ -f /usr/share/wayland-sessions/mango.desktop ]]; then
     fi
 fi
 
-# Initialize dynamic wallpaper theme palette
-if [[ -x "$REPO_DIR/scripts/theme/generate-palette" && -f "$REPO_DIR/wallpapers/nord.jpg" ]]; then
-    if [[ ! -f "$REPO_DIR/themes/generated/palette.css" && ! -f "$REPO_DIR/themes/palette.css" ]]; then
-        msg_info "Initializing dynamic theme palette..."
-        "$REPO_DIR/scripts/theme/generate-palette" "$REPO_DIR/wallpapers/nord.jpg" >/dev/null 2>&1 || true
-        msg_ok "Dynamic theme palette initialized."
+# Initialize dynamic theme palette
+if [[ -x "$REPO_DIR/components/themes/theme-engine.py" ]]; then
+    if [[ ! -f "$REPO_DIR/components/themes/generated/palette.css" ]]; then
+        msg_info "Initializing default theme palette (catppuccin-mocha)..."
+        python3 "$REPO_DIR/components/themes/theme-engine.py" catppuccin-mocha --no-wallpaper >/dev/null 2>&1 || true
+        msg_ok "Theme palette initialized."
     else
-        msg_ok "Dynamic theme palette already active."
+        msg_ok "Theme palette already active."
     fi
 fi
 
@@ -728,21 +786,21 @@ EOF
     fi
 
     # Deploy Nord-themed Ly config idempotently
-    if [[ -f "$REPO_DIR/config/ly/config.ini" ]]; then
+    if [[ -f "$REPO_DIR/system/services/ly/config.ini" ]]; then
         sudo mkdir -p /etc/ly
         if [[ -f /etc/ly/config.ini ]]; then
-            if ! cmp -s "$REPO_DIR/config/ly/config.ini" /etc/ly/config.ini; then
+            if ! cmp -s "$REPO_DIR/system/services/ly/config.ini" /etc/ly/config.ini; then
                 ly_backup="/etc/ly/config.ini.bak.$TIMESTAMP"
                 msg_info "Backing up existing /etc/ly/config.ini to $ly_backup..."
                 sudo cp /etc/ly/config.ini "$ly_backup"
-                sudo cp "$REPO_DIR/config/ly/config.ini" /etc/ly/config.ini
+                sudo cp "$REPO_DIR/system/services/ly/config.ini" /etc/ly/config.ini
                 msg_ok "Updated /etc/ly/config.ini (backup created at $ly_backup)."
             else
                 msg_ok "/etc/ly/config.ini is already up to date with repository theme."
             fi
         else
             msg_info "Deploying Nord-themed Ly configuration to /etc/ly/config.ini..."
-            sudo cp "$REPO_DIR/config/ly/config.ini" /etc/ly/config.ini
+            sudo cp "$REPO_DIR/system/services/ly/config.ini" /etc/ly/config.ini
             msg_ok "Deployed /etc/ly/config.ini."
         fi
     fi
@@ -814,7 +872,7 @@ fi
 echo ""
 msg_info "Running wm-doctor system diagnosis..."
 echo ""
-bash "$REPO_DIR/scripts/diagnostics/wm-doctor" || true
+bash "$REPO_DIR/system/diagnostics/wm-doctor" || true
 
 echo ""
 echo -e "${BOLD}========================================================${RESET}"
@@ -833,7 +891,7 @@ if [[ "$LOGIN_MANAGER" == "ly" ]]; then
     echo ""
 fi
 echo "To start the desktop session manually from any TTY:"
-echo -e "  ${BOLD}start-mango${RESET}  or  ${BOLD}$REPO_DIR/scripts/system/start-mango${RESET}"
+echo -e "  ${BOLD}start-mango${RESET}  or  ${BOLD}$REPO_DIR/system/scripts/start-mango${RESET}"
 echo ""
 echo "Key shortcuts cheatsheet:"
 echo "  Super + Return : Foot Terminal"

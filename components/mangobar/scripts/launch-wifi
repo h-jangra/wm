@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# launch-wifi: Toggle network manager (linktui or rofi-wifi)
+# ==============================================================================
+set -euo pipefail
+
+# If linktui is already running, toggle it closed
+if pgrep -x linktui >/dev/null 2>&1; then
+    pkill -x linktui 2>/dev/null || true
+    exit 0
+fi
+
+LINKTUI_BIN="$(command -v linktui || true)"
+if [[ -z "$LINKTUI_BIN" && -x "$HOME/.local/bin/linktui" ]]; then
+    LINKTUI_BIN="$HOME/.local/bin/linktui"
+fi
+
+if [[ -n "$LINKTUI_BIN" ]]; then
+    # Launch linktui in floating foot window with dedicated app-id
+    if command -v footclient >/dev/null 2>&1 && footclient --version >/dev/null 2>&1; then
+        footclient -a linktui -w 850x720 -T "linktui" -e "$LINKTUI_BIN" "$@" &
+    elif command -v foot >/dev/null 2>&1; then
+        foot --app-id=linktui -w 850x720 -T "linktui" -e "$LINKTUI_BIN" "$@" &
+    else
+        "$LINKTUI_BIN" "$@" &
+    fi
+
+    # Ensure the newly created window gets immediate keyboard focus
+    sleep 0.12
+    if command -v mmsg >/dev/null 2>&1; then
+        lid=$(mmsg get all-clients 2>/dev/null | jq -r '.clients[]? | select(.appid=="linktui" or .title=="linktui") | .id' 2>/dev/null | tail -n 1 || true)
+        if [[ -n "$lid" && "$lid" != "null" ]]; then
+            mmsg dispatch focusid,"$lid" >/dev/null 2>&1 || true
+        fi
+    fi
+elif command -v rofi-wifi >/dev/null 2>&1; then
+    rofi-wifi
+elif command -v nm-connection-editor >/dev/null 2>&1; then
+    nm-connection-editor &
+fi

@@ -1,9 +1,0 @@
-#!/bin/bash
-used_mb=$(free -m | awk '/Mem:/ {print $3}')
-if [[ -z "$used_mb" ]]; then
-  echo "0MB"
-elif [[ "$used_mb" -ge 1024 ]]; then
-  awk "BEGIN {printf \"%.1fGB\", $used_mb / 1024}"
-else
-  echo "${used_mb}MB"
-fi

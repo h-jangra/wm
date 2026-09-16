@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-launcher: Wayland application launcher with style selector
+# Self-contained within components/rofi/launcher/
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+STYLE_DIR="$SCRIPT_DIR"
+ASSET_DIR="$SCRIPT_DIR"
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/wm"
+mkdir -p "$STATE_DIR"
+STATE_FILE="${STATE_DIR}/launcher_style"
+
+[[ -f "$STATE_FILE" ]] || echo "1" > "$STATE_FILE"
+current_style=$(cat "$STATE_FILE" 2>/dev/null || echo "1")
+
+choose_style() {
+    local styles
+    styles=$(find "$STYLE_DIR" -maxdepth 1 -type f -name 'style_*.rasi' 2>/dev/null | sed 's|.*/style_\([0-9]*\)\.rasi|\1|' | sort -n)
+    
+    local menu_items=""
+    for s in $styles; do
+        local icon="$ASSET_DIR/style_${s}.webp"
+        if [[ -f "$icon" ]]; then
+            menu_items+="Style ${s}\0icon\x1f${icon}\n"
+        else
+            menu_items+="Style ${s}\n"
+        fi
+    done
+    
+    local theme_opt=()
+    if [[ -f "$STYLE_DIR/StyleSelect.rasi" ]]; then
+        theme_opt=(-theme "$STYLE_DIR/StyleSelect.rasi")
+    elif [[ -f "$SCRIPT_DIR/../theme.rasi" ]]; then
+        theme_opt=(-theme "$SCRIPT_DIR/../theme.rasi")
+    fi
+
+    local selected
+    selected=$(printf "%b" "$menu_items" | rofi -dmenu -p "Launcher Style" "${theme_opt[@]}" || true)
+    if [[ -n "$selected" ]]; then
+        local num
+        num=$(echo "$selected" | grep -o '[0-9]*' | head -n1)
+        if [[ -n "$num" ]]; then
+            echo "$num" > "$STATE_FILE"
+            notify-send -h string:x-canonical-private-synchronous:wm-launcher "Launcher" "Style switched to Style $num"
+        fi
+    fi
+}
+
+launch() {
+    local style_file="$STYLE_DIR/style_${current_style}.rasi"
+    if [[ -f "$style_file" ]]; then
+        exec rofi -show drun -theme "$style_file"
+    elif [[ -f "$SCRIPT_DIR/launcher.rasi" ]]; then
+        exec rofi -show drun -theme "$SCRIPT_DIR/launcher.rasi"
+    elif [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/rofi/launcher/launcher.rasi" ]]; then
+        exec rofi -show drun -theme "${XDG_CONFIG_HOME:-$HOME/.config}/rofi/launcher/launcher.rasi"
+    else
+        exec rofi -show drun
+    fi
+}
+
+case "${1:-}" in
+    --choose-style|-s)
+        choose_style
+        ;;
+    *)
+        launch
+        ;;
+esac

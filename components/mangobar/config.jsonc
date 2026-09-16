@@ -1,0 +1,74 @@
+{
+    "layer": "top",
+    "height": 30,
+    "buffer-scale": 1,
+
+    "modules-left": [
+        "clock#time"
+    ],
+    "modules-center": [
+        "workspaces"
+    ],
+    "modules-right": [
+        "network",
+        "pulseaudio",
+        "memory",
+        "backlight",
+        "battery",
+        "tray"
+    ],
+
+    "workspaces": {
+        "hide-empty": true,
+        "tag-names": ["一", "二", "三", "四", "五", "六", "七", "八", "九"],
+        "overview-label": "󰕴",
+        "on-click": "activate",
+        "on-click-right": "toggle"
+    },
+
+    "clock#time": {
+        "format": "{:L%I:%M:%S %p}",
+        "format-alt": "{:L%a, %d %b}",
+        "on-click-right": "rofi-calendar"
+    },
+
+    "network": {
+        "format": "󰤨",
+        "on-click": "launch-wifi"
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": " {volume}%",
+        "icons": ["", "", ""],
+        "on-click": "launch-audio",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
+    },
+
+    "memory": {
+        "format": "󰍛 {}",
+        "on-click": "launch-btop"
+    },
+
+    "backlight": {
+        "format": "{icon}",
+        "icons": ["󰃚", "󰃛", "󰃜", "󰃝", "󰃟", "󰃠"],
+        "on-scroll-up": "brightnessctl set +5%",
+        "on-scroll-down": "brightnessctl set 5%-"
+    },
+
+    "battery": {
+        "format": "{icon} {percent}%",
+        "icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "icon-charging": "󰂄",
+        "on-click": "rofi-battery",
+        "on-click-right": "battery-status"
+    },
+
+    "tray": {
+        "icon-size": 18,
+        "spacing": 8
+    }
+}
