@@ -1,0 +1,27 @@
+/* ================================
+ * Theme - Nord
+ * ================================ */
+@define-color capsule_bg #3b4252;
+@define-color capsule_hover #4c566a;
+@define-color capsule_fg #d8dee9;
+@define-color border_color #4c566a;
+@define-color clock_color #b48ead;
+@define-color ram_color #88c0d0;
+@define-color keyviz_color #88c0d0;
+@define-color recorder_color #bf616a;
+@define-color ws_focused #88c0d0;
+@define-color ws_occupied #88c0d0;
+@define-color ws_empty #4c566a;
+@define-color ws_urgent #bf616a;
+@define-color bt_color #81a1c1;
+@define-color net_color #ebcb8b;
+@define-color vol_color #a3be8c;
+@define-color bat_color #81a1c1;
+@define-color session_color #bf616a;
+@define-color accent #88c0d0;
+@define-color accent_alt #88c0d0;
+@define-color rd1 #88c0d0;
+@define-color dark_bg #3b4252;
+@define-color hover_bg #4c566a;
+@define-color bg #2e3440;
+@define-color fg #d8dee9;

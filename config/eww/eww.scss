@@ -1,0 +1,14 @@
+$rad: 4px;
+
+@import "styles/colors";
+@import "styles/styling";
+@import "styles/profilecard";
+@import "styles/player";
+
+* {
+  font-family: "IBM Plex Sans", "Noto Sans CJK JP", "Material Symbols Rounded";
+  font-weight: bold;
+  font-size: 18px;
+  background-color: transparent;
+  box-shadow: none;
+}

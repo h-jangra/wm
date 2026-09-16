@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# eww-toggle: Toggle eww bar center widgets and OSD popups for MangoWC
+# Usage: eww-toggle [powermenu|screenshot|workspaces|volOSD|brOSD|close]
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+EWW_SCRIPTS="${HOME}/.config/eww/scripts"
+REPO_SCRIPTS="${SCRIPT_DIR}/../eww/scripts"
+
+FOCUS_WATCHER_PID_FILE="/tmp/eww_powermenu_watcher.pid"
+
+kill_watcher() {
+  if [[ -f "$FOCUS_WATCHER_PID_FILE" ]]; then
+    local wpid
+    wpid=$(cat "$FOCUS_WATCHER_PID_FILE" 2>/dev/null || true)
+    if [[ -n "$wpid" ]]; then
+      kill "$wpid" 2>/dev/null || true
+    fi
+    rm -f "$FOCUS_WATCHER_PID_FILE"
+  fi
+}
+
+case "${1:-}" in
+  powermenu)
+    current=$(eww get center-option 2>/dev/null || echo "workspaces")
+    if [[ "$current" == "powermenu" ]]; then
+      eww-toggle close
+    else
+      kill_watcher
+      mmsg dispatch setkeymode,powermenu 2>/dev/null || true
+      eww update center-option="powermenu" power-option=1 power-reveal=1 2>/dev/null || true
+      sleep 0.05
+      eww update reveal-option="powermenu" 2>/dev/null || true
+    fi
+    ;;
+  screenshot)
+    kill_watcher
+    current=$(eww get center-option 2>/dev/null || echo "workspaces")
+    if [[ "$current" == "screenshooter" ]]; then
+      eww update reveal-option="workspaces" 2>/dev/null || true
+      sleep 0.2
+      eww update center-option="workspaces" screenshot-option=1 screenshot-reveal=0 2>/dev/null || true
+    else
+      eww update center-option="screenshooter" screenshot-option=1 screenshot-reveal=1 2>/dev/null || true
+      sleep 0.05
+      eww update reveal-option="screenshooter" 2>/dev/null || true
+    fi
+    ;;
+  workspaces)
+    kill_watcher
+    mmsg dispatch setkeymode,default 2>/dev/null || true
+    eww update reveal-option="workspaces" 2>/dev/null || true
+    sleep 0.2
+    eww update center-option="workspaces" 2>/dev/null || true
+    ;;
+  volOSD)
+    if [[ -x "$EWW_SCRIPTS/volume_osd" ]]; then
+      "$EWW_SCRIPTS/volume_osd" &
+    elif [[ -x "$REPO_SCRIPTS/volume_osd" ]]; then
+      "$REPO_SCRIPTS/volume_osd" &
+    fi
+    ;;
+  brOSD)
+    if [[ -x "$EWW_SCRIPTS/brightness_osd" ]]; then
+      "$EWW_SCRIPTS/brightness_osd" &
+    elif [[ -x "$REPO_SCRIPTS/brightness_osd" ]]; then
+      "$REPO_SCRIPTS/brightness_osd" &
+    fi
+    ;;
+  close)
+    kill_watcher
+    mmsg dispatch setkeymode,default 2>/dev/null || true
+    eww update reveal-option="workspaces" 2>/dev/null || true
+    sleep 0.2
+    eww update center-option="workspaces" power-option=1 power-reveal=0 screenshot-option=1 screenshot-reveal=0 2>/dev/null || true
+    ;;
+  *)
+    echo "Usage: eww-toggle [powermenu|screenshot|workspaces|volOSD|brOSD|close]" >&2
+    exit 1
+    ;;
+esac

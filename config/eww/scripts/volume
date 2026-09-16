@@ -1,0 +1,42 @@
+#!/bin/bash
+
+icon() {
+  local mute vol
+  mute=$(pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | awk '{print $2}')
+  if [[ "$mute" == "yes" ]]; then
+    echo "images/volume-off.svg"
+    return
+  fi
+  vol=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk -F'/' '{print $2}' | tr -d ' %' | head -1)
+  if [[ -z "$vol" || "$vol" -eq 0 ]]; then
+    echo "images/volume-low.svg"
+  elif [[ "$vol" -le 50 ]]; then
+    echo "images/volume-medium.svg"
+  else
+    echo "images/volume-high.svg"
+  fi
+}
+
+level() {
+  local vol
+  vol=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk -F'/' '{print $2}' | tr -d ' %' | head -1)
+  if [[ -z "$vol" ]]; then
+    echo "0"
+  else
+    echo "$vol"
+  fi
+}
+
+if [[ "$1" == "number" ]]; then
+  level
+  pactl subscribe 2>/dev/null | grep --line-buffered "sink" | while read -r _; do
+    level
+  done
+elif [[ "$1" == "icon" ]]; then
+  icon
+  pactl subscribe 2>/dev/null | grep --line-buffered "sink" | while read -r _; do
+    icon
+  done
+else
+  level
+fi

@@ -1,0 +1,518 @@
+@import url("theme.css");
+
+/* Base Typography & Window */
+* {
+    font-family: "Maple Mono", "SymbolsNF", monospace;
+    -gtk-secondary-caret-color: @theme_accent;
+}
+
+window,
+.background {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+/* Main Window */
+window.thunar,
+ThunarWindow {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+/* 1. Headerbar & Toolbar (Sleek unified toolbar) */
+window.thunar headerbar,
+window.thunar toolbar,
+window.thunar .primary-toolbar,
+toolbar#location-toolbar {
+    background-color: @theme_sidebar;
+    background-image: none;
+    color: @theme_fg;
+    border-bottom: 1px solid @theme_border;
+    padding: 4px 6px;
+    box-shadow: none;
+}
+
+/* Toolbar Buttons (Clean icon buttons) */
+window.thunar toolbar button,
+window.thunar headerbar button {
+    background-color: transparent;
+    background-image: none;
+    color: @theme_fg;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 3px 5px;
+    margin: 0 1px;
+    min-width: 24px;
+    min-height: 24px;
+    box-shadow: none;
+    transition: all 150ms ease;
+}
+
+window.thunar toolbar button image,
+window.thunar headerbar button image {
+    padding: 0;
+    margin: 0;
+}
+
+window.thunar toolbar button:hover,
+window.thunar headerbar button:hover {
+    background-color: @theme_surface;
+    border-color: alpha(@theme_border, 0.7);
+    color: #ffffff;
+}
+
+window.thunar toolbar button:checked,
+window.thunar toolbar button:active,
+window.thunar headerbar button:checked {
+    background-color: alpha(@theme_accent, 0.2);
+    border-color: alpha(@theme_accent, 0.5);
+    color: @theme_accent;
+}
+
+window.thunar toolbar button:disabled,
+window.thunar headerbar button:disabled {
+    color: alpha(@theme_fg, 0.3);
+    background-color: transparent;
+    border-color: transparent;
+}
+
+/* 2. Location & Breadcrumb Bar (No bright white boxes) */
+entry,
+.entry,
+window.thunar entry,
+window.thunar .entry,
+window.thunar .path-bar-box,
+window.thunar .path-bar,
+window.thunar pathbar,
+toolbar#location-toolbar > toolitem > widget,
+toolbar#location-toolbar .entry {
+    background-color: @theme_surface;
+    background-image: none;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 2px 4px;
+    box-shadow: none;
+}
+
+entry:focus,
+.entry:focus,
+window.thunar entry:focus {
+    border-color: @theme_accent;
+    box-shadow: 0 0 0 1px alpha(@theme_accent, 0.4);
+}
+
+/* Path / Breadcrumb Buttons */
+window.thunar .path-bar button,
+window.thunar pathbar button,
+button.path-bar-button {
+    background-color: transparent;
+    background-image: none;
+    color: @theme_fg;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 3px 8px;
+    margin: 1px 2px;
+    font-weight: 500;
+    transition: all 150ms ease;
+}
+
+window.thunar .path-bar button:hover,
+window.thunar pathbar button:hover,
+button.path-bar-button:hover {
+    background-color: alpha(@theme_fg, 0.1);
+    color: #ffffff;
+    border-color: transparent;
+}
+
+window.thunar .path-bar button:checked,
+window.thunar pathbar button:checked,
+button.path-bar-button:checked {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: bold;
+    border-color: @theme_accent;
+}
+
+/* 3. Sidebar (Shortcuts & Tree Pane - Archcraft floating pill items) */
+window.thunar .sidebar,
+window.thunar scrolledwindow.sidebar,
+window.thunar scrolledwindow.sidebar treeview.view,
+window.thunar ThunarShortcutsPane,
+window.thunar ThunarTreePane,
+window.thunar .sidebar list {
+    background-color: @theme_sidebar;
+    background-image: none;
+    color: @theme_fg;
+    border: none;
+}
+
+/* Sidebar rows */
+window.thunar .sidebar treeview.view {
+    padding: 6px 4px;
+    -GtkTreeView-expander-size: 10;
+    -GtkTreeView-horizontal-separator: 4;
+    -GtkTreeView-vertical-separator: 2;
+}
+
+window.thunar .sidebar treeview.view row,
+window.thunar .sidebar row {
+    padding: 6px 10px;
+    margin: 2px 6px;
+    border-radius: 6px;
+    border: none;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+window.thunar .sidebar treeview.view row:hover,
+window.thunar .sidebar row:hover {
+    background-color: alpha(@theme_fg, 0.08);
+}
+
+window.thunar .sidebar treeview.view:selected,
+window.thunar .sidebar treeview.view row:selected,
+window.thunar .sidebar row:selected {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+/* Sidebar category headers (PLACES, NETWORK, DEVICES) */
+window.thunar .sidebar treeview.view header,
+window.thunar .sidebar .separator,
+window.thunar .sidebar label.heading,
+window.thunar .sidebar .heading {
+    color: alpha(@theme_fg, 0.45);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    padding: 10px 8px 4px 8px;
+}
+
+/* 4. Paned Separator (Clean 1px dividing line between sidebar and main view) */
+paned > separator {
+    background-color: @theme_border;
+    min-width: 1px;
+    min-height: 1px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* 5. Main File View (Icon View & Details View) */
+window.thunar .standard-view,
+window.thunar ThunarStandardView,
+window.thunar ThunarIconView,
+window.thunar ThunarDetailsView,
+window.thunar ThunarCompactView,
+window.thunar .view,
+window.thunar iconview {
+    background-color: @theme_bg;
+    background-image: none;
+    color: @theme_fg;
+    -ThunarAbstractIconView-row-spacing: 14;
+    -ThunarAbstractIconView-column-spacing: 14;
+}
+
+/* Selection and Hover in File View */
+window.thunar .view:selected,
+window.thunar .view row:selected,
+window.thunar iconview:selected,
+window.thunar .standard-view .view:selected {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+window.thunar .view row:hover,
+window.thunar iconview:hover {
+    background-color: alpha(@theme_surface, 0.7);
+    border-radius: 6px;
+}
+
+/* Rubberband Drag Selection */
+rubberband,
+.rubberband,
+window.thunar rubberband {
+    background-color: alpha(@theme_accent, 0.22);
+    border: 1px solid @theme_accent;
+    border-radius: 4px;
+}
+
+/* 6. Details View Column Headers */
+window.thunar treeview header button {
+    background-color: @theme_sidebar;
+    background-image: none;
+    color: alpha(@theme_fg, 0.65);
+    border: none;
+    border-bottom: 1px solid @theme_border;
+    border-right: 1px solid alpha(@theme_border, 0.4);
+    border-radius: 0;
+    padding: 5px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: none;
+}
+
+window.thunar treeview header button:hover {
+    background-color: @theme_surface;
+    color: #ffffff;
+}
+
+/* 7. Search Bar */
+window.thunar .search-bar,
+window.thunar searchbar {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border;
+    padding: 4px 8px;
+}
+
+/* 8. Tabs (Notebook) */
+notebook {
+    background-color: @theme_bg;
+}
+
+notebook > header {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border;
+    padding: 3px 6px 0 6px;
+}
+
+notebook > header tab {
+    background-color: transparent;
+    color: alpha(@theme_fg, 0.6);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 5px 14px;
+    margin: 0 2px;
+    font-weight: 500;
+    transition: all 150ms ease;
+}
+
+notebook > header tab:hover:not(:checked) {
+    background-color: alpha(@theme_fg, 0.08);
+    color: @theme_fg;
+}
+
+notebook > header tab:checked {
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-bottom: 1px solid @theme_bg;
+    font-weight: 600;
+}
+
+notebook > header tab button {
+    border-radius: 50%;
+    min-width: 14px;
+    min-height: 14px;
+    padding: 1px;
+    margin-left: 6px;
+}
+
+notebook > header tab button:hover {
+    background-color: alpha(@theme_urgent, 0.25);
+    color: @theme_urgent;
+}
+
+/* 9. Status Bar (Clean bottom bar) */
+statusbar,
+.statusbar,
+window.thunar statusbar {
+    background-color: @theme_sidebar;
+    color: alpha(@theme_fg, 0.65);
+    border-top: 1px solid @theme_border;
+    padding: 4px 12px;
+    font-size: 11px;
+}
+
+statusbar label {
+    padding: 0 4px;
+}
+
+/* 10. Context Menus & Popovers */
+menu,
+.menu,
+popover,
+popover.background {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+menu menuitem,
+.menu menuitem {
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin: 1px 2px;
+    color: @theme_fg;
+    transition: all 120ms ease;
+}
+
+menu menuitem:hover,
+.menu menuitem:hover {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: 500;
+}
+
+menu menuitem:disabled,
+.menu menuitem:disabled {
+    color: alpha(@theme_fg, 0.35);
+}
+
+menu separator,
+.menu separator {
+    min-height: 1px;
+    background-color: @theme_border;
+    margin: 4px 6px;
+}
+
+/* 11. Scrollbars (Minimalist overlay) */
+scrollbar {
+    background-color: transparent;
+}
+
+scrollbar.horizontal slider {
+    min-width: 24px;
+    min-height: 6px;
+}
+
+scrollbar.vertical slider {
+    min-width: 6px;
+    min-height: 24px;
+}
+
+scrollbar slider {
+    background-color: alpha(@theme_fg, 0.2);
+    border-radius: 10px;
+    margin: 2px;
+    border: none;
+    transition: all 150ms ease;
+}
+
+scrollbar slider:hover,
+scrollbar slider:active {
+    background-color: @theme_accent;
+}
+
+scrollbar button {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    -GtkScrollbar-has-backward-stepper: false;
+    -GtkScrollbar-has-forward-stepper: false;
+}
+
+/* 12. Buttons & Inputs in Dialogs */
+button {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 5px 12px;
+    transition: all 150ms ease;
+}
+
+button:hover {
+    background-color: alpha(@theme_fg, 0.12);
+    border-color: alpha(@theme_border, 1.2);
+}
+
+button:active,
+button:checked {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+button.suggested-action {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    border-color: @theme_accent;
+}
+
+button.destructive-action {
+    background-color: @theme_urgent;
+    color: @theme_bg;
+    border-color: @theme_urgent;
+}
+
+/* Tooltips */
+tooltip {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+dialog,
+messagedialog,
+window {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+dialog .dialog-vbox,
+dialog .dialog-action-area {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+dialog label,
+messagedialog label {
+    color: @theme_fg;
+}
+
+popover,
+menu,
+menuitem {
+    background-color: @theme_surface;
+    color: @theme_fg;
+}
+
+button {
+    background-image: none;
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 5px;
+    box-shadow: none;
+}
+
+button:hover {
+    background-image: none;
+    background-color: @theme_border;
+}
+
+button:active,
+button:checked,
+button.suggested-action {
+    background-image: none;
+    background-color: @accent;
+    color: @theme_bg;
+    border-color: @accent;
+}
+
+entry,
+spinbutton,
+combobox,
+treeview,
+textview {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border-color: @theme_border;
+}
+
+@import url("noctalia.css");

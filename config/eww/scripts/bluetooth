@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Check if rfkill reports bluetooth disabled / blocked
+if command -v rfkill >/dev/null 2>&1; then
+  if rfkill list bluetooth 2>/dev/null | grep -qi "Soft blocked: yes"; then
+    echo "images/bluetooth-disabled.svg"
+    exit 0
+  elif ! rfkill list bluetooth 2>/dev/null | grep -q "Bluetooth"; then
+    echo "images/bluetooth-disabled.svg"
+    exit 0
+  fi
+fi
+
+# Check if any bluetooth devices are connected via bluetoothctl
+if command -v bluetoothctl >/dev/null 2>&1; then
+  if bluetoothctl --timeout 1 devices Connected 2>/dev/null | grep -q "^Device"; then
+    echo "images/bluetooth-connected.svg"
+    exit 0
+  fi
+fi
+
+# Also check pipewire/pulseaudio for bluez sink or source
+if command -v pactl >/dev/null 2>&1; then
+  if pactl list sinks short 2>/dev/null | grep -qi "bluez"; then
+    echo "images/bluetooth-connected.svg"
+    exit 0
+  fi
+fi
+
+# Bluetooth is available/unblocked, but not connected
+echo "images/bluetooth.svg"
