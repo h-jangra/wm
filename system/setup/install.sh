@@ -495,6 +495,7 @@ fi
 mkdir -p "$HOME/.config/gtk-4.0"
 if [[ -f "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" ]]; then
     ln -sf "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
+    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/theme.css" "$HOME/.config/gtk-4.0/theme.css"
     ln -sf "$REPO_DIR/dotfiles/gtk-3.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
     msg_ok "Configured GTK 4.0 dark theme symlinks."
 fi
@@ -560,8 +561,7 @@ desktop_scripts=(
     "$REPO_DIR/components/mangobar/scripts/"*
     "$REPO_DIR/components/rofi/launcher/launcher.sh"
     "$REPO_DIR/components/rofi/launcher/rofi-launcher"
-    "$REPO_DIR/components/rofi/calendar/calendar.sh"
-    "$REPO_DIR/components/rofi/calendar/rofi-calendar"
+    "$REPO_DIR/components/rofi/calendar/rofi-calander"
     "$REPO_DIR/components/rofi/clipboard/clipboard.sh"
     "$REPO_DIR/components/rofi/clipboard/rofi-clipboard"
     "$REPO_DIR/components/rofi/clipboard/clipboard-menu"
@@ -597,6 +597,7 @@ desktop_scripts=(
     "$REPO_DIR/system/scripts/fix-audio"
     "$REPO_DIR/system/scripts/fix-bluetooth"
     "$REPO_DIR/system/scripts/fix-dbus"
+    "$REPO_DIR/components/mangobar/scripts/launch-bluetooth"
     "$REPO_DIR/system/services/pipewire-launcher.sh"
     "$REPO_DIR/system/diagnostics/wm-doctor"
 )

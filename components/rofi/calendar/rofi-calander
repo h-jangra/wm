@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-calander: Minimal Calendar Popup for MangoWC / Rofi
+# - Pure Bash using util-linux `cal`
+# - 7-column grid (Monday to Sunday) with weekday top row
+# - Smooth month/year navigation across year boundaries
+# - Highlights today only when viewing current month
+# - Copies date to clipboard on click (wl-copy)
+# ==============================================================================
+set -euo pipefail
+
+# Toggle: close if calendar is already running
+if pgrep -f "calander\.rasi" >/dev/null 2>&1; then
+    pkill -f "calander\.rasi" || true
+    exit 0
+fi
+
+# Locate theme file
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+
+THEME="$SCRIPT_DIR/calander.rasi"
+
+[[ -f "$THEME" ]] || {
+    printf 'Error: Theme not found: %s\n' "$THEME" >&2
+    exit 1
+}
+
+# Offsets for bar positioning (configurable via env vars)
+X_OFFSET="${CALENDAR_X_OFFSET:-0}"
+Y_OFFSET="${CALENDAR_Y_OFFSET:-36}"
+
+# Current date reference
+current_year=$(date +%-Y)
+current_month=$(date +%-m)
+today=$(date +%-d)
+
+year="$current_year"
+month="$current_month"
+
+prev_month() {
+    if (( month == 1 )); then
+        month=12
+        (( year-- ))
+    else
+        (( month-- ))
+    fi
+}
+
+next_month() {
+    if (( month == 12 )); then
+        month=1
+        (( year++ ))
+    else
+        (( month++ ))
+    fi
+}
+
+prev_year() { (( year-- )) }
+
+next_year() { (( year++ )) }
+
+jump_today() {
+    year="$current_year"
+    month="$current_month"
+}
+
+while true; do
+    # Generate calendar lines using cal (Monday-based week)
+    mapfile -t cal_lines < <(cal --color=never -m "$month" "$year")
+    title=$(echo "${cal_lines[0]:-}" | xargs)
+
+    entries=()
+
+    # Row 0: Weekday headers (Monday through Sunday)
+    entries+=(
+        "<b>Mo</b>"
+        "<b>Tu</b>"
+        "<b>We</b>"
+        "<b>Th</b>"
+        "<b>Fr</b>"
+        "<b>Sa</b>"
+        "<b>Su</b>"
+    )
+
+    # Rows 1 to 6: 42 date cells (6 weeks * 7 columns)
+    today_index=-1
+    for ((row = 2; row < 8; row++)); do
+        line="${cal_lines[row]:-}"
+        printf -v line "%-20s" "$line"
+        for col_idx in 0 1 2 3 4 5 6; do
+            char_pos=$(( col_idx * 3 ))
+            val="${line:char_pos:2}"
+            day_num=$(echo "$val" | xargs)
+
+            if [[ -z "$day_num" ]]; then
+                entries+=(" ")
+            else
+                current_cell_index="${#entries[@]}"
+                if [[ "$year" -eq "$current_year" && "$month" -eq "$current_month" && "$day_num" -eq "$today" ]]; then
+                    today_index="$current_cell_index"
+                    entries+=("<b>$day_num</b>")
+                else
+                    entries+=("$day_num")
+                fi
+            fi
+        done
+    done
+
+    # Prepare Rofi arguments
+    rofi_args=(
+        -dmenu
+        -markup-rows
+        -no-custom
+        -p "$title"
+        -mesg "←/→:Month  •  ↑/↓:Year  •  T:Today  •  Esc:Close"
+        -theme-str "window { x-offset: ${X_OFFSET}px; y-offset: ${Y_OFFSET}px; }"
+        -kb-row-first ""
+        -kb-row-last ""
+        -kb-move-char-back ""
+        -kb-move-char-forward ""
+        -kb-row-left ""
+        -kb-row-right ""
+        -kb-row-up ""
+        -kb-row-down ""
+        -kb-page-prev ""
+        -kb-page-next ""
+        -kb-custom-1 "Left,Alt+Left,Page_Up,p,h"
+        -kb-custom-2 "Right,Alt+Right,Page_Down,n,l"
+        -kb-custom-3 "Up,Alt+Up,k"
+        -kb-custom-4 "Down,Alt+Down,j"
+        -kb-custom-5 "t,T"
+        -kb-custom-6 "q,Q"
+    )
+
+    if [[ -n "$THEME" ]]; then
+        rofi_args+=(-theme "$THEME")
+    fi
+
+    # Highlight today only when viewing the current month
+    if (( today_index >= 0 )); then
+        rofi_args+=(-a "$today_index" -selected-row "$today_index")
+    else
+        rofi_args+=(-selected-row 7)
+    fi
+
+    set +e
+    selected=$(printf '%s\n' "${entries[@]}" | rofi "${rofi_args[@]}")
+    status=$?
+    set -e
+
+    case "$status" in
+        0)
+            # Date clicked or selected with Enter: copy to clipboard
+            clean_val=$(echo "$selected" | sed 's/<[^>]*>//g' | tr -d '[:space:]')
+            if [[ "$clean_val" =~ ^[0-9]+$ ]]; then
+                selected_date=$(printf "%04d-%02d-%02d" "$year" "$month" "$clean_val")
+                if command -v wl-copy >/dev/null 2>&1; then
+                    wl-copy "$selected_date" || true
+                fi
+                if command -v notify-send >/dev/null 2>&1; then
+                    notify-send -h string:x-canonical-private-synchronous:wm-calendar "Calendar" "Copied $selected_date to clipboard" || true
+                fi
+            fi
+            exit 0
+            ;;
+        10) # Previous month
+            prev_month
+            ;;
+        11) # Next month
+            next_month
+            ;;
+        12) # Previous year
+            prev_year
+            ;;
+        13) # Next year
+            next_year
+            ;;
+        14) # Today
+            jump_today
+            ;;
+        *) # Esc, q, click outside
+            exit 0
+            ;;
+    esac
+done

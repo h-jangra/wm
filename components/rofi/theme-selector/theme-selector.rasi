@@ -1,7 +1,7 @@
 /**
  * Rofi Theme Selector - Polished 3x3 Grid Layout
  **/
-@import "theme.rasi"
+@import "../theme.rasi"
 
 window {
     width:                       760px;

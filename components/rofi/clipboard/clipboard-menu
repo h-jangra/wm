@@ -1,1 +1,30 @@
-clipboard.sh
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-clipboard: Interactive Clipboard History Search using cliphist
+# ==============================================================================
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+if [[ -f "$SCRIPT_DIR/clipboard.rasi" ]]; then
+    RASI="$SCRIPT_DIR/clipboard.rasi"
+elif [[ -f "$CONF_DIR/clipboard/clipboard.rasi" ]]; then
+    RASI="$CONF_DIR/clipboard/clipboard.rasi"
+elif [[ -f "$CONF_DIR/clipboard.rasi" ]]; then
+    RASI="$CONF_DIR/clipboard.rasi"
+else
+    RASI=""
+fi
+
+if ! command -v cliphist >/dev/null 2>&1; then
+    notify-send "Clipboard" "cliphist is not installed."
+    exit 1
+fi
+
+selected=$(cliphist list | rofi -dmenu -p "Clipboard" ${RASI:+-theme "$RASI"} || true)
+
+if [[ -n "$selected" ]]; then
+    echo "$selected" | cliphist decode | wl-copy
+    notify-send -h string:x-canonical-private-synchronous:wm-clip "Clipboard" "Copied to clipboard."
+fi

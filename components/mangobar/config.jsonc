@@ -4,10 +4,10 @@
     "buffer-scale": 1,
 
     "modules-left": [
-        "clock#time"
+      "workspaces"
     ],
     "modules-center": [
-        "workspaces"
+      "clock#time"
     ],
     "modules-right": [
         "network",
@@ -29,7 +29,7 @@
     "clock#time": {
         "format": "{:L%I:%M:%S %p}",
         "format-alt": "{:L%a, %d %b}",
-        "on-click-right": "rofi-calendar"
+        "on-click-right": "rofi-calander"
     },
 
     "network": {
@@ -38,33 +38,36 @@
     },
 
     "pulseaudio": {
-        "format": "{icon} {volume}%",
-        "format-muted": " {volume}%",
+        "format": "{icon}",
+        "format-alt": "{icon} {volume}",
+        "format-muted": "",
         "icons": ["", "", ""],
-        "on-click": "launch-audio",
+        "on-click-middle": "launch-audio",
         "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
         "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
         "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
     },
 
     "memory": {
-        "format": "󰍛 {}",
-        "on-click": "launch-btop"
+        "format": "󰍛",
+        "format-alt": "󰍛 {}",
+        "on-click-right": "launch-btop"
     },
 
     "backlight": {
         "format": "{icon}",
+        "format-alt": "{icon} {}",
         "icons": ["󰃚", "󰃛", "󰃜", "󰃝", "󰃟", "󰃠"],
         "on-scroll-up": "brightnessctl set +5%",
         "on-scroll-down": "brightnessctl set 5%-"
     },
 
     "battery": {
-        "format": "{icon} {percent}%",
+        "format": "{icon}",
+        "format-alt": "{icon} {percent}",
         "icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
         "icon-charging": "󰂄",
-        "on-click": "rofi-battery",
-        "on-click-right": "battery-status"
+        "on-click-right": "rofi-battery"
     },
 
     "tray": {

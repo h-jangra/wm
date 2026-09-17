@@ -2,7 +2,7 @@
  * Rofi Screenshot Menu Theme
  **/
 
-@import "theme.rasi"
+@import "../theme.rasi"
 
 window {
     width:                       360px;

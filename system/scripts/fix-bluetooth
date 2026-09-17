@@ -2,7 +2,8 @@
 # ==============================================================================
 # fix-bluetooth: Diagnostic and automatic repair tool for BlueZ Bluetooth stack
 # Designed for Void Linux runit systems running MangoWC / Wayland.
-# Configures packages, user groups, runit service, rfkill, and power states.
+# Configures D-Bus, packages, user groups, runit service, rfkill,
+# BlueZ pairing policy (JustWorks / AlwaysPairable), and controller states.
 # ==============================================================================
 set -euo pipefail
 
@@ -11,18 +12,133 @@ GREEN="\033[32m"
 BLUE="\033[34m"
 YELLOW="\033[33m"
 RED="\033[31m"
+CYAN="\033[36m"
 RESET="\033[0m"
 
 msg_info() { echo -e "${BLUE}[INFO]${RESET} $*"; }
 msg_ok()   { echo -e "${GREEN}[OK]${RESET} $*"; }
 msg_warn() { echo -e "${YELLOW}[WARN]${RESET} $*"; }
 msg_err()  { echo -e "${RED}[ERROR]${RESET} $*"; }
-
-echo -e "${BOLD}==> Diagnosing and Repairing Bluetooth Subsystem (BlueZ)...${RESET}"
+msg_step() { echo -e "\n${BOLD}${CYAN}==>${RESET} ${BOLD}$*${RESET}"; }
 
 CURRENT_USER="${USER:-$(id -un)}"
 
-# 1. Package verification
+# ------------------------------------------------------------------------------
+# Help
+# ------------------------------------------------------------------------------
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: ./install.sh --fix-bluetooth"
+    echo "   or: fix-bluetooth"
+    echo ""
+    echo "Diagnostic and automatic repair tool for BlueZ Bluetooth on Void Linux."
+    echo "Repairs D-Bus IPC, service supervisor, rfkill, pairing policies, and controller states."
+    exit 0
+fi
+
+echo -e "${BOLD}========================================================${RESET}"
+echo -e "${BOLD}      Bluetooth Subsystem Diagnostic & Repair Tool      ${RESET}"
+echo -e "${BOLD}========================================================${RESET}"
+
+# ------------------------------------------------------------------------------
+# Privilege Validation
+# ------------------------------------------------------------------------------
+ensure_sudo() {
+    if [[ "$EUID" -ne 0 ]]; then
+        if command -v sudo >/dev/null 2>&1; then
+            if [[ -t 0 ]]; then
+                msg_info "Validating root privileges (required for runit services and system configuration)..."
+                if ! sudo -v; then
+                    msg_warn "Sudo privileges not granted. Actions requiring root may fail."
+                fi
+            else
+                if ! sudo -n true 2>/dev/null; then
+                    msg_warn "Running non-interactively without cached sudo credentials. Actions requiring root may fail."
+                fi
+            fi
+        else
+            msg_warn "sudo is not installed. Operations requiring root may fail."
+        fi
+    fi
+}
+
+ensure_sudo
+
+# ------------------------------------------------------------------------------
+# Hardware Detection
+# ------------------------------------------------------------------------------
+DETECTED_CHIPSET="Unknown"
+IS_INTEL=0
+IS_MEDIATEK=0
+IS_REALTEK=0
+IS_BROADCOM=0
+
+detect_controller_hardware() {
+    local lsusb_out=""
+    if command -v lsusb >/dev/null 2>&1; then
+        lsusb_out=$(lsusb 2>/dev/null || true)
+    fi
+
+    if echo "$lsusb_out" | grep -qi "8087:"; then
+        DETECTED_CHIPSET="Intel"
+        IS_INTEL=1
+    elif echo "$lsusb_out" | grep -qiE "0e8d:|13d3:3567|MediaTek"; then
+        DETECTED_CHIPSET="MediaTek"
+        IS_MEDIATEK=1
+    elif echo "$lsusb_out" | grep -qi "0bda:"; then
+        DETECTED_CHIPSET="Realtek"
+        IS_REALTEK=1
+    elif echo "$lsusb_out" | grep -qi "0a5c:"; then
+        DETECTED_CHIPSET="Broadcom"
+        IS_BROADCOM=1
+    fi
+
+    # Fallback to btmgmt
+    if [[ "$DETECTED_CHIPSET" == "Unknown" ]] && command -v btmgmt >/dev/null 2>&1; then
+        local mgmt_info
+        mgmt_info=$(btmgmt info 2>/dev/null || true)
+        if echo "$mgmt_info" | grep -q "manufacturer 2\b"; then
+            DETECTED_CHIPSET="Intel"
+            IS_INTEL=1
+        elif echo "$mgmt_info" | grep -q "manufacturer 70\b"; then
+            DETECTED_CHIPSET="MediaTek"
+            IS_MEDIATEK=1
+        elif echo "$mgmt_info" | grep -q "manufacturer 93\b"; then
+            DETECTED_CHIPSET="Realtek"
+            IS_REALTEK=1
+        elif echo "$mgmt_info" | grep -q "manufacturer 15\b"; then
+            DETECTED_CHIPSET="Broadcom"
+            IS_BROADCOM=1
+        fi
+    fi
+}
+
+detect_controller_hardware
+
+# ------------------------------------------------------------------------------
+# 1. D-Bus Subsystem Verification (bluetoothd hard dependency)
+# ------------------------------------------------------------------------------
+msg_step "1/7 Verifying D-Bus IPC Subsystem"
+# /etc/sv/bluetoothd/run explicitly executes: sv check dbus || exit 1
+if [[ -d /etc/sv/dbus ]]; then
+    if [[ ! -e /var/service/dbus && ! -L /var/service/dbus ]]; then
+        msg_info "Enabling essential DBus runit service (/var/service/dbus)..."
+        sudo ln -sf /etc/sv/dbus /var/service/ 2>/dev/null || true
+        sleep 0.5
+    fi
+    if ! pgrep -x dbus-daemon >/dev/null 2>&1 && ! pgrep -x dbus-broker >/dev/null 2>&1; then
+        msg_info "Starting DBus system daemon..."
+        sudo sv up dbus 2>/dev/null || sudo sv restart dbus 2>/dev/null || true
+        sleep 0.5
+    fi
+    msg_ok "D-Bus system message bus is supervised and active."
+else
+    msg_warn "Service definition /etc/sv/dbus not found. Ensure dbus package is intact."
+fi
+
+# ------------------------------------------------------------------------------
+# 2. Package & Kernel Firmware Verification
+# ------------------------------------------------------------------------------
+msg_step "2/7 Verifying Bluetooth Packages & Hardware Firmware"
 missing_pkgs=()
 for pkg in bluez libspa-bluetooth; do
     if command -v xbps-query >/dev/null 2>&1; then
@@ -32,18 +148,34 @@ for pkg in bluez libspa-bluetooth; do
     fi
 done
 
-if [[ ${#missing_pkgs[@]} -gt 0 ]]; then
-    msg_info "Installing missing Bluetooth packages: ${missing_pkgs[*]}..."
-    if sudo xbps-install -y "${missing_pkgs[@]}"; then
-        msg_ok "Bluetooth packages installed."
-    else
-        msg_warn "Could not install packages (requires sudo)."
+# Recommend/install firmware package matching detected chipset
+if command -v xbps-query >/dev/null 2>&1; then
+    if [[ $IS_INTEL -eq 1 ]]; then
+        if ! xbps-query -s "linux-firmware-intel" 2>/dev/null | grep -q "^\[\*\]"; then
+            missing_pkgs+=("linux-firmware-intel")
+        fi
+    elif [[ $IS_MEDIATEK -eq 1 || $IS_REALTEK -eq 1 || $IS_BROADCOM -eq 1 ]]; then
+        if ! xbps-query -s "linux-firmware-network" 2>/dev/null | grep -q "^\[\*\]"; then
+            missing_pkgs+=("linux-firmware-network")
+        fi
     fi
-else
-    msg_ok "Essential Bluetooth packages are installed (bluez, libspa-bluetooth)."
 fi
 
-# 2. Hardware permissions (bluetooth group)
+if [[ ${#missing_pkgs[@]} -gt 0 ]]; then
+    msg_info "Installing missing packages / firmware: ${missing_pkgs[*]}..."
+    if sudo xbps-install -y "${missing_pkgs[@]}"; then
+        msg_ok "Bluetooth packages and firmware installed."
+    else
+        msg_warn "Could not automatically install packages (requires sudo / network)."
+    fi
+else
+    msg_ok "Essential packages and firmware are present (bluez, libspa-bluetooth, firmware)."
+fi
+
+# ------------------------------------------------------------------------------
+# 3. Hardware Permissions (bluetooth group)
+# ------------------------------------------------------------------------------
+msg_step "3/7 Configuring User Group Permissions"
 if getent group bluetooth >/dev/null 2>&1; then
     if id -nG "$CURRENT_USER" | grep -qw "bluetooth"; then
         msg_ok "User '$CURRENT_USER' is in 'bluetooth' group."
@@ -55,12 +187,107 @@ if getent group bluetooth >/dev/null 2>&1; then
             msg_warn "Could not add user to bluetooth group (requires sudo)."
         fi
     fi
+else
+    sudo groupadd -r bluetooth 2>/dev/null || true
+    sudo usermod -aG bluetooth "$CURRENT_USER" 2>/dev/null || true
+    msg_ok "Configured 'bluetooth' system group."
 fi
 
-# 3. System runit service
+# ------------------------------------------------------------------------------
+# 4. Radio State (rfkill unblock)
+# ------------------------------------------------------------------------------
+msg_step "4/7 Checking Radio Blocking State (rfkill)"
+if command -v rfkill >/dev/null 2>&1; then
+    rfkill_status=$(rfkill list bluetooth 2>/dev/null || true)
+    if echo "$rfkill_status" | grep -qi "Hard blocked: yes"; then
+        msg_err "Bluetooth radio is HARD-BLOCKED by hardware switch or BIOS/airplane key!"
+        msg_warn "Please toggle your laptop's physical Wi-Fi/Bluetooth switch or Fn key."
+    fi
+
+    sudo rfkill unblock bluetooth 2>/dev/null || rfkill unblock bluetooth 2>/dev/null || true
+    msg_ok "Unblocked Bluetooth devices in rfkill."
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Controller Health Check & Auto-Recovery
+# ------------------------------------------------------------------------------
+msg_step "5/7 Controller Health Check & Hardware Verification"
+msg_info "Detected Bluetooth hardware chipset: ${BOLD}${DETECTED_CHIPSET}${RESET}"
+
+has_hci=0
+if compgen -G "/sys/class/bluetooth/hci*" >/dev/null; then
+    has_hci=1
+fi
+
+if [[ $has_hci -eq 0 ]]; then
+    msg_warn "No Bluetooth HCI controller detected. Reloading kernel driver modules (btusb)..."
+    sudo sv down bluetoothd 2>/dev/null || true
+    sleep 0.5
+
+    sudo modprobe -r btusb btintel btmtk btrtl btbcm bluetooth 2>/dev/null \
+        || sudo modprobe -r btusb 2>/dev/null || true
+    sleep 1
+
+    if sudo modprobe btusb 2>/dev/null; then
+        msg_ok "Kernel driver module 'btusb' reloaded cleanly."
+    fi
+    sleep 1
+
+    if command -v rfkill >/dev/null 2>&1; then
+        sudo rfkill unblock bluetooth 2>/dev/null || true
+    fi
+else
+    msg_ok "Bluetooth HCI controller interface is active in /sys/class/bluetooth."
+fi
+
+# ------------------------------------------------------------------------------
+# 6. BlueZ Configuration (/etc/bluetooth/main.conf)
+# ------------------------------------------------------------------------------
+msg_step "6/7 Optimizing BlueZ Daemon Configuration & Pairing Policy"
+if [[ -f /etc/bluetooth/main.conf ]]; then
+    set_conf_val() {
+        local key="$1"
+        local val="$2"
+        local section="${3:-General}"
+        if grep -qE "^\s*#?\s*${key}\s*=" /etc/bluetooth/main.conf; then
+            sudo sed -i -E "s/^\s*#?\s*${key}\s*=.*/${key} = ${val}/" /etc/bluetooth/main.conf 2>/dev/null || true
+        else
+            echo -e "\n[${section}]\n${key} = ${val}" | sudo tee -a /etc/bluetooth/main.conf >/dev/null 2>&1 || true
+        fi
+    }
+
+    # Policy AutoEnable: ensure adapters power on automatically
+    set_conf_val "AutoEnable" "true" "Policy"
+
+    # FastConnectable: improve reconnection speed for headsets / keyboards
+    set_conf_val "FastConnectable" "true" "General"
+
+    # Experimental: enable battery reporting and modern LE GATT features
+    set_conf_val "Experimental" "true" "General"
+
+    # AlwaysPairable: allow incoming pairing requests even without external PIN agent
+    set_conf_val "AlwaysPairable" "true" "General"
+
+    # PairableTimeout: stay permanently pairable (0 = disable timeout)
+    set_conf_val "PairableTimeout" "0" "General"
+
+    # JustWorksRepairing: allow earbuds/headsets using JustWorks to re-pair seamlessly
+    # (prevents org.bluez.Error.AuthenticationRejected)
+    set_conf_val "JustWorksRepairing" "always" "General"
+
+    # ControllerMode: dual mode supports both Classic (BR/EDR) and Bluetooth Low Energy (LE)
+    set_conf_val "ControllerMode" "dual" "General"
+
+    msg_ok "Configured AutoEnable, FastConnectable, AlwaysPairable, JustWorksRepairing=always, ControllerMode=dual."
+fi
+
+# ------------------------------------------------------------------------------
+# 7. Service Management, Controller Activation & Stale Cache Cleanup
+# ------------------------------------------------------------------------------
+msg_step "7/7 Service Management & Controller Activation"
 if [[ -d /etc/sv/bluetoothd ]]; then
     if [[ ! -e /var/service/bluetoothd && ! -L /var/service/bluetoothd ]]; then
-        msg_info "Enabling bluetoothd runit service (/var/service/bluetoothd)..."
+        msg_info "Linking /etc/sv/bluetoothd -> /var/service/bluetoothd..."
         if sudo ln -sf /etc/sv/bluetoothd /var/service/ 2>/dev/null; then
             msg_ok "Enabled /var/service/bluetoothd."
             sleep 0.5
@@ -71,43 +298,103 @@ if [[ -d /etc/sv/bluetoothd ]]; then
         msg_ok "Bluetoothd runit service is linked in /var/service/."
     fi
 
-    # Restart / start service if not running
-    if ! pgrep -x bluetoothd >/dev/null 2>&1; then
-        msg_info "Starting bluetoothd system service..."
-        sudo sv up bluetoothd 2>/dev/null || sudo sv restart bluetoothd 2>/dev/null || true
-        sleep 0.5
-    fi
+    # Restart / start service cleanly to pick up new main.conf
+    msg_info "Restarting bluetoothd supervisor..."
+    sudo sv restart bluetoothd 2>/dev/null || sudo sv up bluetoothd 2>/dev/null || true
+    sleep 1
 else
     msg_warn "Service definition /etc/sv/bluetoothd not found."
 fi
 
-# 4. AutoEnable policy configuration in /etc/bluetooth/main.conf
-if [[ -f /etc/bluetooth/main.conf ]]; then
-    if grep -qE "^\s*#?\s*AutoEnable\s*=" /etc/bluetooth/main.conf; then
-        sudo sed -i -E 's/^\s*#?\s*AutoEnable\s*=.*/AutoEnable = true/' /etc/bluetooth/main.conf 2>/dev/null || true
-        msg_ok "Configured AutoEnable=true in /etc/bluetooth/main.conf."
-    fi
+# Enable bondable / connectable states
+if command -v btmgmt >/dev/null 2>&1; then
+    sudo btmgmt --index 0 power on >/dev/null 2>&1 || true
+    sudo btmgmt --index 0 bondable on >/dev/null 2>&1 || true
+    sudo btmgmt --index 0 connectable on >/dev/null 2>&1 || true
+fi
+if command -v hciconfig >/dev/null 2>&1; then
+    sudo hciconfig hci0 up >/dev/null 2>&1 || true
 fi
 
-# 5. Unblock radio in rfkill
-if command -v rfkill >/dev/null 2>&1; then
-    sudo rfkill unblock bluetooth 2>/dev/null || rfkill unblock bluetooth 2>/dev/null || true
-    msg_ok "Unblocked Bluetooth devices in rfkill."
-fi
-
-# 6. Power on adapter
+# Power on and pairable on via bluetoothctl
 if command -v bluetoothctl >/dev/null 2>&1; then
     bluetoothctl power on >/dev/null 2>&1 || true
-    msg_ok "Sent power on signal via bluetoothctl."
+    bluetoothctl pairable on >/dev/null 2>&1 || true
+
+    # Clean up stale half-paired cache entries that cause AuthenticationRejected
+    devices_list=$(bluetoothctl devices 2>/dev/null || true)
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        dev_mac=$(echo "$line" | awk '{print $2}')
+        dev_info=$(bluetoothctl info "$dev_mac" 2>/dev/null || true)
+        if echo "$dev_info" | grep -qi "Paired: no" && echo "$dev_info" | grep -qi "Trusted: yes"; then
+            msg_warn "Cleaning stale half-paired cache for $dev_mac (prevents AuthenticationRejected)..."
+            bluetoothctl remove "$dev_mac" >/dev/null 2>&1 || true
+        fi
+    done <<< "$devices_list"
 fi
 
-# 7. Final verification
+sleep 0.5
+
+# ------------------------------------------------------------------------------
+# Final Verification
+# ------------------------------------------------------------------------------
+daemon_running=0
 if pgrep -x bluetoothd >/dev/null 2>&1; then
+    daemon_running=1
+fi
+
+bt_show=""
+if command -v bluetoothctl >/dev/null 2>&1; then
+    bt_show=$(bluetoothctl show 2>&1 || true)
+fi
+
+echo ""
+echo -e "${BOLD}----------------- Subsystem Diagnostic Summary -----------------${RESET}"
+if [[ $daemon_running -eq 1 ]]; then
+    echo -e "  • Daemon Status:     ${GREEN}ACTIVE (running)${RESET}"
+else
+    echo -e "  • Daemon Status:     ${RED}INACTIVE (check dmesg / /var/log/socklog)${RESET}"
+fi
+
+if echo "$bt_show" | grep -qi "Controller "; then
+    ctrl_mac=$(echo "$bt_show" | grep -i "Controller " | head -n1 | awk '{print $2}')
+    ctrl_name=$(echo "$bt_show" | grep -i "Name: " | head -n1 | awk '{$1=""; print $0}' | sed 's/^ //')
+    ctrl_power=$(echo "$bt_show" | grep -i "Powered: " | head -n1 | awk '{print $2}')
+    echo -e "  • Controller:        ${GREEN}${ctrl_mac}${RESET} (${ctrl_name:-$DETECTED_CHIPSET})"
+    if [[ "$ctrl_power" == "yes" ]]; then
+        echo -e "  • Controller Power:  ${GREEN}ON (ready for connections)${RESET}"
+    else
+        echo -e "  • Controller Power:  ${YELLOW}OFF (run 'bluetoothctl power on')${RESET}"
+    fi
+else
+    echo -e "  • Controller:        ${YELLOW}No default controller found in BlueZ${RESET}"
+fi
+
+# Non-blocking kernel ring buffer check
+if command -v dmesg >/dev/null 2>&1; then
+    recent_errors=$(dmesg 2>/dev/null | grep -iE "bluetooth|hci|firmware" | grep -iE "failed|error|timeout|denied" | tail -n 3 || true)
+    if [[ -z "$recent_errors" ]] && sudo -n true 2>/dev/null; then
+        recent_errors=$(sudo dmesg 2>/dev/null | grep -iE "bluetooth|hci|firmware" | grep -iE "failed|error|timeout|denied" | tail -n 3 || true)
+    fi
+    if [[ -n "$recent_errors" ]]; then
+        echo -e "  • Kernel Warnings:"
+        echo "$recent_errors" | sed 's/^/      /'
+    fi
+fi
+echo -e "${BOLD}----------------------------------------------------------------${RESET}"
+
+if [[ $daemon_running -eq 1 ]] && echo "$bt_show" | grep -qi "Controller "; then
     echo ""
-    msg_ok "${BOLD}Bluetooth subsystem repair complete: bluetoothd daemon is active!${RESET}"
+    msg_ok "${BOLD}Bluetooth subsystem repair complete: BlueZ daemon and controller are fully active!${RESET}"
+    exit 0
+elif [[ $daemon_running -eq 1 ]]; then
+    echo ""
+    msg_warn "Bluetoothd daemon is active, but hardware controller is not yet recognized."
+    echo "Check if physical/BIOS airplane mode is enabled (rfkill list)."
     exit 0
 else
     echo ""
-    msg_err "Bluetooth daemon failed to start. Ensure Bluetooth hardware is present and not hard-blocked."
+    msg_err "Bluetooth daemon failed to start. Ensure /var/service/dbus is running."
     exit 1
 fi

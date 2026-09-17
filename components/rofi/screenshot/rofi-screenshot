@@ -1,1 +1,90 @@
-screenshot.sh
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-screenshot: Lightweight Wayland Screenshot Utility
+# Uses grim and slurp, with active-window detection via MangoWC mmsg.
+# Saves to ~/Pictures/Screenshots and copies to clipboard with notification.
+# ==============================================================================
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SAVE_DIR="$HOME/Pictures/Screenshots"
+
+if [[ -f "$SCRIPT_DIR/screenshot.rasi" ]]; then
+    RASI="$SCRIPT_DIR/screenshot.rasi"
+elif [[ -f "$CONF_DIR/screenshot/screenshot.rasi" ]]; then
+    RASI="$CONF_DIR/screenshot/screenshot.rasi"
+elif [[ -f "$CONF_DIR/screenshot.rasi" ]]; then
+    RASI="$CONF_DIR/screenshot.rasi"
+else
+    RASI=""
+fi
+
+notify() {
+    local img="${1:-}"
+    local msg="${2:-Saved and copied to clipboard.}"
+    if [[ -n "$img" && -f "$img" ]]; then
+        notify-send -h string:x-canonical-private-synchronous:wm-shot -i "$img" "Screenshot Captured" "$msg"
+    else
+        notify-send -h string:x-canonical-private-synchronous:wm-shot "Screenshot" "$msg"
+    fi
+}
+
+mkdir -p "$SAVE_DIR"
+filename="$SAVE_DIR/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
+
+opt_area="󰹑  Select Area"
+opt_full="󰍹  Full Screen"
+opt_win="󰖲  Active Window"
+opt_area_timer="󰔛  Select Area (5s Timer)"
+
+chosen=$(printf "%s\n%s\n%s\n%s\n" \
+    "$opt_area" \
+    "$opt_full" \
+    "$opt_win" \
+    "$opt_area_timer" | rofi -dmenu -p "Screenshot" ${RASI:+-theme "$RASI"})
+
+case "$chosen" in
+    "$opt_area")
+        sleep 0.2
+        geom=$(slurp) || exit 0
+        grim -g "$geom" "$filename"
+        wl-copy < "$filename"
+        notify "$filename"
+        ;;
+    "$opt_full")
+        sleep 0.2
+        grim "$filename"
+        wl-copy < "$filename"
+        notify "$filename"
+        ;;
+    "$opt_win")
+        sleep 0.2
+        geom=""
+        if command -v mmsg >/dev/null 2>&1; then
+            geom=$(mmsg get focusing-client 2>/dev/null | jq -r '"\(.x),\(.y) \(.width)x\(.height)"' || true)
+        fi
+        if [[ -n "$geom" && "$geom" != "null,null nullxnull" ]]; then
+            grim -g "$geom" "$filename"
+        else
+            # Fallback to slurp if mmsg client geometry unavailable
+            geom=$(slurp) || exit 0
+            grim -g "$geom" "$filename"
+        fi
+        wl-copy < "$filename"
+        notify "$filename"
+        ;;
+    "$opt_area_timer")
+        for i in 5 4 3 2 1; do
+            notify "" "Capturing in ${i}s..."
+            sleep 1
+        done
+        geom=$(slurp) || exit 0
+        grim -g "$geom" "$filename"
+        wl-copy < "$filename"
+        notify "$filename"
+        ;;
+    *)
+        exit 0
+        ;;
+esac

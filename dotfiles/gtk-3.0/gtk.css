@@ -19,11 +19,16 @@ ThunarWindow {
     color: @theme_fg;
 }
 
-/* 1. Headerbar & Toolbar (Sleek unified toolbar) */
+/* 1. Headerbar & Toolbar (Sleek unified toolbar across all windows & dialogs) */
+headerbar,
+toolbar,
+.primary-toolbar,
+toolbar#location-toolbar,
 window.thunar headerbar,
 window.thunar toolbar,
 window.thunar .primary-toolbar,
-toolbar#location-toolbar {
+ThunarRenamerDialog toolbar,
+ThunarRenamerDialog headerbar {
     background-color: @theme_sidebar;
     background-image: none;
     color: @theme_fg;
@@ -32,7 +37,21 @@ toolbar#location-toolbar {
     box-shadow: none;
 }
 
+/* Toolbar Separators */
+toolbar separator,
+toolbar > separator,
+headerbar separator,
+headerbar > separator {
+    background-color: @theme_border;
+    color: @theme_border;
+    min-width: 1px;
+    min-height: 1px;
+    margin: 3px 6px;
+}
+
 /* Toolbar Buttons (Clean icon buttons) */
+toolbar button,
+headerbar button,
 window.thunar toolbar button,
 window.thunar headerbar button {
     background-color: transparent;
@@ -48,12 +67,16 @@ window.thunar headerbar button {
     transition: all 150ms ease;
 }
 
+toolbar button image,
+headerbar button image,
 window.thunar toolbar button image,
 window.thunar headerbar button image {
     padding: 0;
     margin: 0;
 }
 
+toolbar button:hover,
+headerbar button:hover,
 window.thunar toolbar button:hover,
 window.thunar headerbar button:hover {
     background-color: @theme_surface;
@@ -61,14 +84,21 @@ window.thunar headerbar button:hover {
     color: #ffffff;
 }
 
+toolbar button:checked,
+toolbar button:active,
+headerbar button:checked,
+headerbar button:active,
 window.thunar toolbar button:checked,
 window.thunar toolbar button:active,
-window.thunar headerbar button:checked {
+window.thunar headerbar button:checked,
+window.thunar headerbar button:active {
     background-color: alpha(@theme_accent, 0.2);
     border-color: alpha(@theme_accent, 0.5);
     color: @theme_accent;
 }
 
+toolbar button:disabled,
+headerbar button:disabled,
 window.thunar toolbar button:disabled,
 window.thunar headerbar button:disabled {
     color: alpha(@theme_fg, 0.3);
@@ -242,8 +272,10 @@ window.thunar rubberband {
     border-radius: 4px;
 }
 
-/* 6. Details View Column Headers */
-window.thunar treeview header button {
+/* 6. Details View & TreeView Column Headers */
+treeview header button,
+window.thunar treeview header button,
+ThunarRenamerDialog treeview header button {
     background-color: @theme_sidebar;
     background-image: none;
     color: alpha(@theme_fg, 0.65);
@@ -258,7 +290,9 @@ window.thunar treeview header button {
     box-shadow: none;
 }
 
-window.thunar treeview header button:hover {
+treeview header button:hover,
+window.thunar treeview header button:hover,
+ThunarRenamerDialog treeview header button:hover {
     background-color: @theme_surface;
     color: #ffffff;
 }
@@ -464,10 +498,18 @@ window {
     color: @theme_fg;
 }
 
-dialog .dialog-vbox,
-dialog .dialog-action-area {
+dialog .dialog-vbox {
     background-color: @theme_bg;
     color: @theme_fg;
+}
+
+dialog .dialog-action-area,
+dialog .action-area,
+actionbar,
+actionbar > revealer > box {
+    background-color: @theme_sidebar;
+    border-top: 1px solid @theme_border;
+    padding: 6px 12px;
 }
 
 dialog label,
@@ -475,44 +517,150 @@ messagedialog label {
     color: @theme_fg;
 }
 
-popover,
-menu,
-menuitem {
-    background-color: @theme_surface;
-    color: @theme_fg;
+/* 13. Progress Bars (Clean pill progress) */
+progressbar {
+    background-color: transparent;
+    border: none;
+    padding: 2px;
 }
 
-button {
-    background-image: none;
+progressbar trough {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 4px;
+    min-height: 8px;
+}
+
+progressbar progress {
+    background-color: @theme_accent;
+    border-radius: 3px;
+    min-height: 6px;
+}
+
+/* 14. Frames & Grouping (e.g. Bulk Rename options box) */
+frame,
+.frame {
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+frame > border {
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+}
+
+/* 15. Form Controls (Combobox, Spinbutton, Check, Radio, Switch, Scale) */
+combobox {
     background-color: @theme_surface;
     color: @theme_fg;
     border: 1px solid @theme_border;
-    border-radius: 5px;
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
+combobox button.combo {
+    background-color: transparent;
+    border: none;
+    color: @theme_fg;
     box-shadow: none;
 }
 
-button:hover {
-    background-image: none;
-    background-color: @theme_border;
+combobox cellview {
+    color: @theme_fg;
 }
 
-button:active,
-button:checked,
-button.suggested-action {
-    background-image: none;
-    background-color: @accent;
-    color: @theme_bg;
-    border-color: @accent;
+combobox arrow {
+    color: @theme_fg;
+    -gtk-icon-source: -gtk-icontheme("pan-down-symbolic");
+    min-height: 12px;
+    min-width: 12px;
 }
 
-entry,
-spinbutton,
-combobox,
-treeview,
-textview {
+combobox menu,
+combobox window.popup {
     background-color: @theme_surface;
     color: @theme_fg;
-    border-color: @theme_border;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
 }
 
-@import url("noctalia.css");
+spinbutton {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 2px 4px;
+}
+
+spinbutton button {
+    background-color: transparent;
+    border: none;
+    color: @theme_fg;
+}
+
+spinbutton button:hover {
+    background-color: alpha(@theme_fg, 0.1);
+}
+
+checkbutton check,
+radiobutton radio {
+    border: 1px solid @theme_border;
+    border-radius: 4px;
+    background-color: @theme_surface;
+    min-width: 14px;
+    min-height: 14px;
+}
+
+radiobutton radio {
+    border-radius: 50%;
+}
+
+checkbutton check:checked,
+radiobutton radio:checked {
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+switch {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 12px;
+}
+
+switch:checked {
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+}
+
+switch slider {
+    background-color: @theme_fg;
+    border-radius: 50%;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+scale trough {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 4px;
+    min-height: 6px;
+}
+
+scale highlight {
+    background-color: @theme_accent;
+    border-radius: 4px;
+}
+
+scale slider {
+    background-color: @theme_fg;
+    border-radius: 50%;
+    min-width: 14px;
+    min-height: 14px;
+}
+
+textview {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}

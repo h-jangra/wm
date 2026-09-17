@@ -1,148 +1,124 @@
-/**
- * Unified Polished Geometric Theme for Rofi Menus
- * Styled after the Noctalia / Omarchy design language.
- **/
+
 @import "colors.rasi"
 
-* {
-    /* Fallback tokens */
-    background:                  #1e1e2eF2;
-    background-alt:              #181825FF;
-    background-surface:          #313244FF;
-    border-color:                #45475aFF;
-    foreground:                  #cdd6f4FF;
-    foreground-muted:            #6c7086FF;
-    foreground-bright:           #ffffffFF;
-    selected:                    #b4befeFF;
-    selected-fg:                 #181825FF;
-    accent:                      #b4befeFF;
-    urgent:                      #f38ba8FF;
-    active:                      #a6e3a1FF;
-    warning:                     #f9e2afFF;
-
-    font:                        "Maple Mono NF 13";
-    background-color:            transparent;
-    text-color:                  @foreground;
+configuration {
+    show-icons: true;
 }
 
 window {
     transparency:                "real";
-    background-color:            @background;
+    location:                    center;
+    anchor:                      center;
+    fullscreen:                  false;
+    width:                       1000px;
+    x-offset:                    0px;
+    y-offset:                    0px;
+    padding:                     0px;
     border:                      1px;
-    border-color:                @selected;
-    border-radius:               6px;
-    padding:                     14px;
+    border-radius:               8px;
+    background-color:            @background;
 }
 
 mainbox {
-    spacing:                     10px;
-    children:                    [ "inputbar", "message", "listview" ];
+    enabled:                     true;
+    spacing:                     0px;
+    margin:                      0px;
+    padding:                     0px;
+    background-color:            transparent;
+    children:                    [ "inputbar", "listview", "message" ];
 }
 
 inputbar {
-    spacing:                     10px;
-    padding:                     8px 12px;
-    background-color:            @background-alt;
-    border:                      1px;
-    border-color:                @border-color;
-    border-radius:               4px;
+    enabled:                     true;
+    spacing:                     8px;
+    padding:                     18px 24px;
+    background-color:            transparent;
     children:                    [ "prompt", "entry" ];
 }
 
-prompt {
-    text-color:                  @selected;
-    font-weight:                 bold;
+entry {
+    enabled:                     true;
+    expand:                      true;
+    background-color:            @background-alt;
+    text-color:                  @foreground;
+    cursor:                      text;
+    font:                        "Maple Mono NF 13";
+    placeholder:                 "Search";
+    placeholder-color:           @foreground;
+    padding:                     12px 16px;
+    border-radius:               0px 8px 8px 0px;
 }
 
-entry {
-    placeholder:                 "Search...";
-    placeholder-color:           @foreground-muted;
-    text-color:                  @foreground-bright;
+prompt {
+    enabled:                     true;
+    background-color:            @selected;
+    text-color:                  @selected-fg;
+    font:                        "Maple Mono NF Bold 13";
+    padding:                     12px 16px;
+    border-radius:               8px 0px 0px 8px;
 }
 
 listview {
-    lines:                       8;
-    columns:                     1;
-    cycle:                       true;
-    scrollbar:                   false;
-    spacing:                     4px;
+    enabled:                     true;               
+    columns:                     1;                  
+    lines:                       8;                  
+    cycle:                       true;               
+    dynamic:                     true;               
+    scrollbar:                   false;              
+    layout:                      vertical;           
+    reverse:                     false;              
+    fixed-height:                true;               
+    fixed-columns:               true;               
+    spacing:                     4px;                
+    margin:                      12px 16px 16px;
+    background-color:            transparent;        
+    cursor:                      default;            
 }
 
 element {
-    padding:                     8px 12px;
-    border-radius:               4px;
-    spacing:                     10px;
-    border:                      0px;
-}
-
-element normal.normal {
+    enabled:                     true;
+    padding:                     12px 16px;
+    border-radius:               8px;
     background-color:            transparent;
     text-color:                  @foreground;
+    cursor:                      pointer;
 }
 
-element normal.urgent {
+element-text {
+    font:                        "Maple Mono NF 11";
     background-color:            transparent;
-    text-color:                  @urgent;
+    text-color:                  inherit;
+    cursor:                      inherit;
+    vertical-align:              0.5;
+    horizontal-align:            0.0;
 }
 
-element normal.active {
-    background-color:            transparent;
-    text-color:                  @active;
+element-icon {
+    size:                       24px;
+    background-color:           transparent;
 }
 
 element selected.normal {
-    background-color:            @selected;
-    text-color:                  @selected-fg;
-    border:                      1px;
-    border-color:                @selected;
-    font-weight:                 bold;
-}
-
-element selected.urgent {
-    background-color:            @urgent;
-    text-color:                  @selected-fg;
-}
-
-element selected.active {
     background-color:            @selected;
     text-color:                  @selected-fg;
 }
 
 element alternate.normal {
     background-color:            transparent;
-    text-color:                  @foreground;
-}
-
-element alternate.urgent {
-    background-color:            transparent;
-    text-color:                  @urgent;
-}
-
-element alternate.active {
-    background-color:            transparent;
-    text-color:                  @active;
-}
-
-element-icon {
-    size:                        22px;
-    cursor:                      inherit;
-}
-
-element-text {
-    cursor:                      inherit;
-    vertical-align:              0.5;
-    text-color:                  inherit;
 }
 
 message {
-    padding:                     8px 12px;
+    enabled:                     true;
+    margin:                      8px 16px 16px;
+    padding:                     12px;
+    border-radius:               8px;
     background-color:            @background-alt;
-    border:                      1px;
-    border-color:                @border-color;
-    border-radius:               4px;
+    text-color:                  @foreground;
 }
 
 textbox {
-    text-color:                  @accent;
+    background-color:            inherit;
+    text-color:                  inherit;
     vertical-align:              0.5;
+    horizontal-align:            0.5;
 }

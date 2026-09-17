@@ -2,7 +2,7 @@
  * Rofi Audio Sink & Source Theme - 2-Column Grid Layout
  **/
 
-@import "theme.rasi"
+@import "../theme.rasi"
 
 window {
     width:                       680px;

@@ -10,9 +10,9 @@ fi
 
 # Launch btop in floating foot window with dedicated app-id
 if command -v foot >/dev/null 2>&1; then
-    foot --app-id=btop -w 820x720 -T "btop" -e btop &
+    foot --app-id=btop -w 800x750 -T "btop" -e btop &
 elif command -v footclient >/dev/null 2>&1; then
-    footclient -a btop -w 820x720 -T "btop" -e btop &
+    footclient -a btop -w 800x750 -T "btop" -e btop &
 else
     btop &
 fi

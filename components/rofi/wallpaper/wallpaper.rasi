@@ -1,10 +1,10 @@
 /**
  * Rofi Wallpaper Selector Theme - 3-Column Grid with Thumbnails
  **/
-@import "theme.rasi"
+@import "../theme.rasi"
 
 window {
-    width:                       760px;
+    width:                       880px;
     location:                    center;
     anchor:                      center;
 }
@@ -12,14 +12,14 @@ window {
 listview {
     lines:                       3;
     columns:                     3;
-    spacing:                     8px;
+    spacing:                     12px;
     flow:                        horizontal;
 }
 
 element {
     orientation:                 vertical;
     padding:                     12px 8px;
-    border-radius:               6px;
+    border-radius:               8px;
     spacing:                     8px;
     cursor:                      pointer;
     border:                      0px;
@@ -34,14 +34,14 @@ element selected.normal {
 }
 
 element-icon {
-    size:                        56px;
+    size:                        180px;
     horizontal-align:            0.5;
     cursor:                      inherit;
 }
 
 element-text {
     horizontal-align:            0.5;
-    font:                        "Maple Mono NF 12";
+    font:                        "Maple Mono NF 11";
     cursor:                      inherit;
 }
 

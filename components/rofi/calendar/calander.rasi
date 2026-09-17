@@ -1,0 +1,141 @@
+/**
+ * calander.rasi - Minimal Calendar Theme for Rofi
+ * Imports theme.rasi for global desktop colors
+ **/
+
+@import "../theme.rasi"
+
+window {
+    /* Positioned below MangoBar (30px bar + 6px gap) */
+    location:                    north;
+    anchor:                      north;
+    x-offset:                    0px;
+    y-offset:                    36px;
+
+    width:                       500px;
+    padding:                     20px 22px 18px 22px;
+    border:                      1px;
+    border-color:                @border-color;
+    border-radius:               14px;
+    background-color:            @background;
+}
+
+mainbox {
+    spacing:                     12px;
+    padding:                     0px;
+    margin:                      0px;
+    children:                    [ "inputbar", "listview", "message" ];
+    background-color:            transparent;
+}
+
+inputbar {
+    children:                    [ "prompt" ];
+    background-color:            transparent;
+    padding:                     2px 0px 6px 0px;
+    spacing:                     0px;
+    margin:                      0px;
+}
+
+prompt {
+    font:                        "Maple Mono NF Bold 16";
+    text-color:                  @accent;
+    background-color:            transparent;
+    expand:                      true;
+    horizontal-align:            0.5;
+    vertical-align:              0.5;
+    padding:                     0px;
+    border-radius:               0px;
+}
+
+listview {
+    flow:                        horizontal;
+    columns:                     7;
+    lines:                       7;
+    fixed-columns:               true;
+    fixed-height:                false;
+    spacing:                     6px;
+    cycle:                       false;
+    scrollbar:                   false;
+    background-color:            transparent;
+    margin:                      0px;
+    padding:                     0px;
+}
+
+element {
+    padding:                     9px 0px;
+    border-radius:               8px;
+    background-color:            transparent;
+    cursor:                      pointer;
+}
+
+element-text {
+    font:                        "Maple Mono NF 12";
+    horizontal-align:            0.5;
+    vertical-align:              0.5;
+    text-color:                  @foreground;
+    background-color:            transparent;
+    cursor:                      inherit;
+}
+
+/* Hover / Selected normal date */
+element selected.normal {
+    background-color:            @selected;
+    text-color:                  @selected-fg;
+}
+
+element selected.normal element-text {
+    text-color:                  @selected-fg;
+}
+
+/* Today's cell (active element) */
+element normal.active {
+    background-color:            @accent;
+    text-color:                  @selected-fg;
+    border-radius:               8px;
+}
+
+element normal.active element-text {
+    text-color:                  @selected-fg;
+}
+
+element selected.active {
+    background-color:            @selected;
+    text-color:                  @selected-fg;
+    border-radius:               8px;
+}
+
+element selected.active element-text {
+    text-color:                  @selected-fg;
+}
+
+element alternate.normal {
+    background-color:            transparent;
+}
+
+element alternate.normal element-text {
+    text-color:                  @foreground;
+}
+
+element alternate.active {
+    background-color:            @accent;
+    text-color:                  @selected-fg;
+}
+
+element alternate.active element-text {
+    text-color:                  @selected-fg;
+}
+
+message {
+    margin:                      4px 0px 0px 0px;
+    padding:                     8px 12px;
+    border-radius:               8px;
+    background-color:            @background-alt;
+    border:                      0px;
+}
+
+textbox {
+    font:                        "Maple Mono NF 9.5";
+    text-color:                  @foreground;
+    horizontal-align:            0.5;
+    vertical-align:              0.5;
+}

@@ -2,13 +2,16 @@
  * Rofi Power Profile Theme - 3-Column Grid Layout
  **/
 
-@import "theme.rasi"
+@import "../theme.rasi"
 
 window {
     width:                       660px;
-    location:                    center;
-    anchor:                      center;
+    location:                    northeast;
+    anchor:                      north;
+    x-offset:                    10px;
+    y-offset:                    10px;
     border-radius:               8px;
+    border:                      1px;
 }
 
 mainbox {
@@ -17,6 +20,7 @@ mainbox {
 }
 
 inputbar {
+  enabled: false;
     padding:                     10px 14px;
 }
 
