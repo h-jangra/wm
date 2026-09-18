@@ -1,0 +1,425 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# fix-video: Diagnostic and automatic repair tool for Webcam / UVC / V4L2 stack
+# Designed for Void Linux runit systems running MangoWC / Wayland.
+# Configures user groups, USB autosuspend rules, uvcvideo module quirks,
+# WirePlumber libcamera/v4l2 conflict resolution, and video device permissions.
+# ==============================================================================
+set -euo pipefail
+
+BOLD="\033[1m"
+GREEN="\033[32m"
+BLUE="\033[34m"
+YELLOW="\033[33m"
+RED="\033[31m"
+CYAN="\033[36m"
+RESET="\033[0m"
+
+msg_info() { echo -e "${BLUE}[INFO]${RESET} $*"; }
+msg_ok()   { echo -e "${GREEN}[OK]${RESET} $*"; }
+msg_warn() { echo -e "${YELLOW}[WARN]${RESET} $*"; }
+msg_err()  { echo -e "${RED}[ERROR]${RESET} $*"; }
+msg_step() { echo -e "\n${BOLD}${CYAN}==>${RESET} ${BOLD}$*${RESET}"; }
+
+CURRENT_USER="${USER:-$(id -un)}"
+
+# ------------------------------------------------------------------------------
+# Help
+# ------------------------------------------------------------------------------
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: ./install.sh --fix-video"
+    echo "   or: fix-video"
+    echo ""
+    echo "Diagnostic and automatic repair tool for webcams (UVC / V4L2) on Void Linux."
+    echo "Fixes:"
+    echo "  - Missing user group permissions ('video' and 'render' groups)"
+    echo "  - USB autosuspend sleeping/freezing integrated webcams (VIDIOC_DQBUF error)"
+    echo "  - Kernel uvcvideo driver bandwidth bugs & timeouts (uvcvideo quirks=128 nodrop=1)"
+    echo "  - WirePlumber dual-backend conflict (disables libcamera monitor to prefer clean V4L2)"
+    echo "  - Missing camera utilities (v4l-utils)"
+    echo "  - Stalled driver states by reloading the uvcvideo kernel module"
+    exit 0
+fi
+
+echo -e "${BOLD}========================================================${RESET}"
+echo -e "${BOLD}        Webcam & Video Subsystem Diagnostic & Repair    ${RESET}"
+echo -e "${BOLD}========================================================${RESET}"
+
+# ------------------------------------------------------------------------------
+# Privilege Validation
+# ------------------------------------------------------------------------------
+ensure_sudo() {
+    if [[ "$EUID" -ne 0 ]]; then
+        if command -v sudo >/dev/null 2>&1; then
+            if [[ -t 0 ]]; then
+                msg_info "Validating root privileges (required for kernel modules, udev rules & modprobe)..."
+                if ! sudo -v; then
+                    msg_warn "Sudo privileges not granted. Actions requiring root may fail."
+                fi
+            else
+                if ! sudo -n true 2>/dev/null; then
+                    msg_warn "Running non-interactively without cached sudo credentials. Actions requiring root may fail."
+                fi
+            fi
+        else
+            msg_warn "sudo is not installed. Operations requiring root may fail."
+        fi
+    fi
+}
+
+ensure_sudo
+
+# ------------------------------------------------------------------------------
+# Step 1: Hardware & Device Node Detection
+# ------------------------------------------------------------------------------
+msg_step "1/7 Detecting Camera Hardware & Device Nodes"
+
+DETECTED_CAMERA_NAME="Unknown"
+DETECTED_USB_ID=""
+USB_SYSFS_PATH=""
+
+if command -v lsusb >/dev/null 2>&1; then
+    cam_line=$(lsusb 2>/dev/null | grep -iE 'camera|webcam|video|uvc' | head -n 1 || true)
+    if [[ -n "$cam_line" ]]; then
+        DETECTED_USB_ID=$(echo "$cam_line" | awk '{print $6}')
+        DETECTED_CAMERA_NAME=$(echo "$cam_line" | sed -E 's/^Bus [0-9]+ Device [0-9]+: ID [0-9a-f:]+ //')
+        msg_ok "USB Camera detected: ${BOLD}${DETECTED_CAMERA_NAME}${RESET} (${DETECTED_USB_ID})"
+    fi
+fi
+
+# Find corresponding USB sysfs device if USB ID was detected
+if [[ -n "$DETECTED_USB_ID" && "$DETECTED_USB_ID" == *:* ]]; then
+    vid="${DETECTED_USB_ID%%:*}"
+    pid="${DETECTED_USB_ID##*:}"
+    for dev_path in /sys/bus/usb/devices/*; do
+        if [[ -f "$dev_path/idVendor" && -f "$dev_path/idProduct" ]]; then
+            cur_vid=$(cat "$dev_path/idVendor" 2>/dev/null || true)
+            cur_pid=$(cat "$dev_path/idProduct" 2>/dev/null || true)
+            if [[ "$cur_vid" == "$vid" && "$cur_pid" == "$pid" ]]; then
+                USB_SYSFS_PATH="$dev_path"
+                break
+            fi
+        fi
+    done
+fi
+
+video_nodes=()
+for node in /dev/video*; do
+    if [[ -e "$node" ]]; then
+        video_nodes+=("$node")
+    fi
+done
+
+if [[ ${#video_nodes[@]} -gt 0 ]]; then
+    msg_ok "Detected V4L2 video nodes: ${BOLD}${video_nodes[*]}${RESET}"
+else
+    msg_warn "No /dev/video* device nodes currently present."
+    msg_warn "Ensure your webcam is plugged in or laptop privacy shutter/Fn key is enabled."
+fi
+
+# ------------------------------------------------------------------------------
+# Step 2: User Groups & Permissions
+# ------------------------------------------------------------------------------
+msg_step "2/7 Configuring User Hardware Permissions"
+
+groups_updated=0
+for grp in video render; do
+    if getent group "$grp" >/dev/null 2>&1; then
+        if id -nG "$CURRENT_USER" | grep -qw "$grp"; then
+            msg_ok "User '$CURRENT_USER' is in '$grp' group."
+        else
+            msg_info "Adding '$CURRENT_USER' to '$grp' group..."
+            if sudo usermod -aG "$grp" "$CURRENT_USER" 2>/dev/null; then
+                msg_ok "User '$CURRENT_USER' added to '$grp' group."
+                groups_updated=1
+            else
+                msg_warn "Could not add user to '$grp' group (requires sudo)."
+            fi
+        fi
+    else
+        sudo groupadd -r "$grp" 2>/dev/null || true
+        sudo usermod -aG "$grp" "$CURRENT_USER" 2>/dev/null || true
+        msg_ok "Created and added user to '$grp' group."
+        groups_updated=1
+    fi
+done
+
+if [[ $groups_updated -eq 1 ]]; then
+    msg_info "Note: New group memberships apply on next login or via 'newgrp video'."
+fi
+
+# ------------------------------------------------------------------------------
+# Step 3: Package Verification
+# ------------------------------------------------------------------------------
+msg_step "3/7 Verifying Essential Packages (v4l-utils, pipewire)"
+
+missing_pkgs=()
+for pkg in v4l-utils pipewire wireplumber; do
+    if command -v xbps-query >/dev/null 2>&1; then
+        if ! xbps-query -s "$pkg" 2>/dev/null | grep -q "^\[\*\]"; then
+            missing_pkgs+=("$pkg")
+        fi
+    fi
+done
+
+if [[ ${#missing_pkgs[@]} -gt 0 ]]; then
+    msg_info "Installing missing packages: ${missing_pkgs[*]}..."
+    if sudo xbps-install -y "${missing_pkgs[@]}"; then
+        msg_ok "Packages installed successfully."
+    else
+        msg_warn "Could not install packages automatically (requires sudo / network)."
+    fi
+else
+    msg_ok "Essential packages are installed (v4l-utils, pipewire, wireplumber)."
+fi
+
+# ------------------------------------------------------------------------------
+# Step 4: USB Autosuspend / Power Management Fix
+# ------------------------------------------------------------------------------
+msg_step "4/7 Disabling USB Autosuspend for UVC Webcams"
+
+# Webcams frequently freeze or drop frames (ioctl VIDIOC_DQBUF error) when
+# runtime power management puts USB video interfaces into autosuspend sleep.
+UDEV_RULE_FILE="/etc/udev/rules.d/99-webcam-powersave.rules"
+RULE_CONTENT='# Void Linux: Disable USB autosuspend for USB Video Class (UVC) webcam devices
+# Prevents ioctl(VIDIOC_DQBUF) timeouts and camera disconnects
+ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="0e", ATTR{../power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="0e", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", DRIVERS=="uvcvideo", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="video4linux", ATTR{../power/control}="on"
+'
+
+if [[ -d /etc/udev/rules.d ]] || sudo mkdir -p /etc/udev/rules.d 2>/dev/null; then
+    echo "$RULE_CONTENT" | sudo tee "$UDEV_RULE_FILE" >/dev/null 2>&1 || true
+    if [[ -f "$UDEV_RULE_FILE" ]]; then
+        msg_ok "Installed udev rule: $UDEV_RULE_FILE"
+    else
+        msg_warn "Could not write $UDEV_RULE_FILE (requires sudo)."
+    fi
+fi
+
+# Immediately wake up any currently connected USB video devices in sysfs
+woken_devices=0
+for p_ctrl in /sys/bus/usb/devices/*/power/control; do
+    dev_dir="$(dirname "$p_ctrl")"
+    # Check if this USB device or any interface is a video device or uses uvcvideo
+    is_cam=0
+    if compgen -G "$dev_dir/*/video4linux" >/dev/null 2>&1; then
+        is_cam=1
+    elif grep -q "uvcvideo" "$dev_dir"/*/driver 2>/dev/null; then
+        is_cam=1
+    elif [[ -f "$dev_dir/bDeviceClass" ]] && [[ "$(cat "$dev_dir/bDeviceClass" 2>/dev/null)" == "0e" ]]; then
+        is_cam=1
+    elif [[ -n "$USB_SYSFS_PATH" && "$dev_dir" == "$USB_SYSFS_PATH" ]]; then
+        is_cam=1
+    fi
+
+    if [[ $is_cam -eq 1 ]]; then
+        current_val=$(cat "$p_ctrl" 2>/dev/null || true)
+        if [[ "$current_val" != "on" ]]; then
+            echo "on" | sudo tee "$p_ctrl" >/dev/null 2>&1 || true
+            woken_devices=$((woken_devices + 1))
+        fi
+    fi
+done
+
+if [[ $woken_devices -gt 0 ]]; then
+    msg_ok "Disabled USB autosuspend on $woken_devices active camera USB interface(s)."
+else
+    msg_ok "Camera USB power management verified (not autosuspended)."
+fi
+
+# Reload and trigger udev rules
+if command -v udevadm >/dev/null 2>&1; then
+    sudo udevadm control --reload-rules 2>/dev/null || true
+    sudo udevadm trigger --subsystem-match=usb --subsystem-match=video4linux 2>/dev/null || true
+fi
+
+# ------------------------------------------------------------------------------
+# Step 5: UVC Kernel Module Quirks & Configuration
+# ------------------------------------------------------------------------------
+msg_step "5/7 Configuring UVC Kernel Driver Parameters (/etc/modprobe.d/uvcvideo.conf)"
+
+# UVC_QUIRK_FIX_BANDWIDTH (0x80 = 128): Fixes cameras requesting entire USB bus bandwidth
+# nodrop=1: Don't drop incomplete frames (prevents video freeze on slight frame imperfections)
+# timeout=5000: Increases stream request timeout from default to 5000ms
+MODPROBE_FILE="/etc/modprobe.d/uvcvideo.conf"
+MODPROBE_CONTENT='# Void Linux: UVC webcam driver optimizations
+# quirks=128 (0x80): UVC_QUIRK_FIX_BANDWIDTH fixes USB bandwidth allocation errors
+# nodrop=1: Prevents dropping incomplete frames so video streams remain continuous
+# timeout=5000: Extends streaming control request timeout to 5000ms
+options uvcvideo nodrop=1 timeout=5000 quirks=128
+'
+
+if [[ -d /etc/modprobe.d ]] || sudo mkdir -p /etc/modprobe.d 2>/dev/null; then
+    echo "$MODPROBE_CONTENT" | sudo tee "$MODPROBE_FILE" >/dev/null 2>&1 || true
+    if [[ -f "$MODPROBE_FILE" ]]; then
+        msg_ok "Configured uvcvideo options in $MODPROBE_FILE (quirks=128 nodrop=1 timeout=5000)."
+    else
+        msg_warn "Could not write $MODPROBE_FILE (requires sudo)."
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# Step 6: WirePlumber Dual-Backend Conflict Resolution
+# ------------------------------------------------------------------------------
+msg_step "6/7 Resolving PipeWire / WirePlumber Camera Backend Conflict"
+
+# In WirePlumber 0.5+, both 'monitor.v4l2' and 'monitor.libcamera' are enabled by default.
+# libcamera attaches to /dev/media0 and locks /dev/video0, causing conflicts,
+# duplicate sources, and black screens in browsers (Chromium/Firefox) and WebRTC apps.
+# Disabling monitor.libcamera allows clean, stable V4L2 camera operation.
+
+WP_DROPIN_DIR="$HOME/.config/wireplumber/wireplumber.conf.d"
+mkdir -p "$WP_DROPIN_DIR"
+cat > "$WP_DROPIN_DIR/99-disable-libcamera.conf" << 'EOF'
+# Disable WirePlumber's libcamera monitor to eliminate device locking & V4L2 conflicts
+wireplumber.profiles = {
+  main = {
+    monitor.libcamera = disabled
+  }
+}
+EOF
+msg_ok "Configured WirePlumber drop-in: ~/.config/wireplumber/wireplumber.conf.d/99-disable-libcamera.conf"
+
+# Also configure system-wide if directory exists or can be created
+if [[ -d /etc/wireplumber/wireplumber.conf.d ]] || sudo mkdir -p /etc/wireplumber/wireplumber.conf.d 2>/dev/null; then
+    sudo cp "$WP_DROPIN_DIR/99-disable-libcamera.conf" /etc/wireplumber/wireplumber.conf.d/ 2>/dev/null || true
+fi
+
+# Restart WirePlumber if running so it applies the single clean V4L2 monitor
+if pgrep -u "$CURRENT_USER" -x wireplumber >/dev/null 2>&1; then
+    msg_info "Restarting WirePlumber to apply backend changes..."
+    pkill -u "$CURRENT_USER" -x wireplumber 2>/dev/null || true
+    sleep 0.5
+    wireplumber &
+    sleep 0.5
+    msg_ok "WirePlumber restarted."
+fi
+
+# ------------------------------------------------------------------------------
+# Step 7: Driver Reinitialization & Stream Verification
+# ------------------------------------------------------------------------------
+msg_step "7/7 Reinitializing Kernel Module & Testing Video Capture"
+
+# Reload uvcvideo module to apply quirks and clear any hardware stalled state
+if lsmod | grep -q "^uvcvideo\b"; then
+    msg_info "Reloading uvcvideo kernel driver..."
+    # Close any open file descriptors by temporarily resetting the module
+    sudo modprobe -r uvcvideo 2>/dev/null || true
+    sleep 0.5
+    sudo modprobe uvcvideo 2>/dev/null || true
+    sleep 1
+    msg_ok "Kernel driver uvcvideo reloaded."
+fi
+
+# Re-check device nodes
+primary_video_node=""
+for dev in /dev/video0 /dev/video1 /dev/video2; do
+    if [[ -e "$dev" ]]; then
+        # Check if node supports video capture
+        if command -v v4l2-ctl >/dev/null 2>&1; then
+            if v4l2-ctl -d "$dev" --all 2>/dev/null | grep -q "Video Capture"; then
+                primary_video_node="$dev"
+                break
+            fi
+        else
+            primary_video_node="$dev"
+            break
+        fi
+    fi
+done
+
+# Set permissions on nodes
+if [[ -n "$primary_video_node" ]]; then
+    sudo chmod 0660 /dev/video* 2>/dev/null || true
+    sudo chgrp video /dev/video* 2>/dev/null || true
+fi
+
+# Test video capture capabilities
+test_passed=0
+if [[ -n "$primary_video_node" ]] && command -v v4l2-ctl >/dev/null 2>&1; then
+    msg_info "Querying formats for ${primary_video_node}..."
+    fmts=$(v4l2-ctl -d "$primary_video_node" --list-formats 2>/dev/null | grep -E "\[[0-9]+\]" || true)
+    if [[ -n "$fmts" ]]; then
+        echo "$fmts" | sed 's/^/    /'
+        test_passed=1
+    fi
+fi
+
+# Check PipeWire video source
+pw_camera_found=0
+if command -v wpctl >/dev/null 2>&1; then
+    wp_status=$(wpctl status 2>/dev/null || true)
+    if echo "$wp_status" | grep -A 10 "Video" | grep -qiE "Camera|v4l2"; then
+        pw_camera_found=1
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# Diagnostic Summary
+# ------------------------------------------------------------------------------
+echo ""
+echo -e "${BOLD}----------------- Subsystem Diagnostic Summary -----------------${RESET}"
+if [[ -n "$primary_video_node" ]]; then
+    echo -e "  • Video Device Node: ${GREEN}${primary_video_node}${RESET}"
+else
+    echo -e "  • Video Device Node: ${RED}None detected${RESET}"
+fi
+
+if [[ -n "$DETECTED_CAMERA_NAME" && "$DETECTED_CAMERA_NAME" != "Unknown" ]]; then
+    echo -e "  • Hardware Model:    ${GREEN}${DETECTED_CAMERA_NAME}${RESET} (${DETECTED_USB_ID})"
+else
+    echo -e "  • Hardware Model:    ${YELLOW}Generic / Not detected in lsusb${RESET}"
+fi
+
+if [[ -f "$UDEV_RULE_FILE" ]]; then
+    echo -e "  • USB Autosuspend:   ${GREEN}Disabled (99-webcam-powersave.rules)${RESET}"
+else
+    echo -e "  • USB Autosuspend:   ${YELLOW}Default (check /etc/udev/rules.d/)${RESET}"
+fi
+
+if [[ -f "$MODPROBE_FILE" ]]; then
+    echo -e "  • Driver Quirks:     ${GREEN}Enabled (quirks=128 nodrop=1 timeout=5000)${RESET}"
+else
+    echo -e "  • Driver Quirks:     ${YELLOW}Default kernel options${RESET}"
+fi
+
+if [[ -f "$WP_DROPIN_DIR/99-disable-libcamera.conf" ]]; then
+    echo -e "  • PipeWire/Backend:  ${GREEN}V4L2 Preferred (libcamera conflict disabled)${RESET}"
+else
+    echo -e "  • PipeWire/Backend:  ${YELLOW}Default dual-backend${RESET}"
+fi
+
+if id -nG "$CURRENT_USER" | grep -qw "video"; then
+    echo -e "  • User Permissions:  ${GREEN}OK (in 'video' group)${RESET}"
+else
+    echo -e "  • User Permissions:  ${YELLOW}Pending re-login for 'video' group${RESET}"
+fi
+
+if [[ $pw_camera_found -eq 1 ]]; then
+    echo -e "  • PipeWire Stream:   ${GREEN}Camera source recognized in PipeWire${RESET}"
+fi
+echo -e "${BOLD}----------------------------------------------------------------${RESET}"
+
+if [[ -n "$primary_video_node" && $test_passed -eq 1 ]]; then
+    echo ""
+    msg_ok "${BOLD}Webcam repair complete: Device ${primary_video_node} is ready for use!${RESET}"
+    echo "You can test video streaming with:"
+    echo "  • mpv av://v4l2:${primary_video_node} --profile=low-latency --untimed"
+    echo "  • ffplay -f v4l2 -i ${primary_video_node}"
+    exit 0
+elif [[ -n "$primary_video_node" ]]; then
+    echo ""
+    msg_ok "Webcam device node created (${primary_video_node})."
+    echo "If video still fails, verify that physical privacy shutter / Fn toggle key is open."
+    exit 0
+else
+    echo ""
+    msg_warn "No video device detected after reload."
+    echo "Tips for laptop webcams:"
+    echo "  1. Check for a physical sliding privacy switch above your screen."
+    echo "  2. Toggle your laptop's camera Fn key (commonly Fn+F10, Fn+F8, or Fn+F6)."
+    echo "  3. Verify that the integrated camera is enabled in BIOS/UEFI settings."
+    exit 1
+fi

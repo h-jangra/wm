@@ -71,7 +71,9 @@
 #keymode,
 #keyboardlayout,
 #tray,
-#custom-power {
+#custom-power,
+#custom-keyviz,
+#custom-recorder {
     background-color: @bg;
     color: @fg;
     padding: 0 12px;
@@ -104,6 +106,10 @@
 
 #battery {
     color: @bat_color;
+}
+
+#custom-keyviz {
+    color: @keyviz_color;
 }
 
 #battery.warning,

@@ -31,7 +31,7 @@ confirm_cmd() {
 
     rofi -dmenu \
         -p "Confirmation" \
-        -mesg "Uptime: $(uptime_text) | $action" \
+        -mesg "$action" \
         -theme "$THEME" \
         -theme-str '
             window { width: 350px; }
@@ -63,10 +63,10 @@ execute() {
             mmsg dispatch quit
             ;;
         reboot)
-            confirm "Reboot" && systemctl reboot
+            confirm "Reboot" && reboot
             ;;
         shutdown)
-            confirm "Shutdown" && systemctl poweroff
+            confirm "Shutdown" && sudo poweroff
             ;;
     esac
 }

@@ -10,6 +10,8 @@
       "clock#time"
     ],
     "modules-right": [
+        "custom/keyviz",
+        "custom/recorder",
         "network",
         "pulseaudio",
         "memory",
@@ -42,6 +44,7 @@
         "format-alt": "{icon} {volume}",
         "format-muted": "",
         "icons": ["", "", ""],
+        "icon-bluetooth": "󰂯",
         "on-click-middle": "launch-audio",
         "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
         "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
@@ -68,6 +71,25 @@
         "icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
         "icon-charging": "󰂄",
         "on-click-right": "rofi-battery"
+    },
+
+    "custom/recorder": {
+        "format": "{}",
+        "exec": "recorder status",
+        "interval": 1,
+        "signal": 1,
+        "on-click": "recorder region",
+        "on-click-right": "recorder fullscreen",
+        "on-click-middle": "recorder stop"
+    },
+
+    "custom/keyviz": {
+        "format": "{}",
+        "exec": "keyviz status",
+        "interval": 1,
+        "signal": 2,
+        "on-click": "keyviz toggle",
+        "on-click-right": "keyviz menu"
     },
 
     "tray": {

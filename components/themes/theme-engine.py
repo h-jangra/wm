@@ -407,6 +407,8 @@ def generate_mangobar_css(theme):
 @define-color vol_color {value(theme, 'vol', value(theme, 'accent_alt'))};
 @define-color bat_color {value(theme, 'bat', value(theme, 'accent'))};
 @define-color session_color {value(theme, 'session', value(theme, 'ws_urgent'))};
+@define-color recorder_color {value(theme, 'recorder', value(theme, 'ws_urgent'))};
+@define-color keyviz_color {value(theme, 'accent')};
 """
 
 

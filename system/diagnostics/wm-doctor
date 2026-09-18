@@ -218,15 +218,27 @@ fi
 
 user_groups=$(groups || true)
 if echo "$user_groups" | grep -qw "video"; then
-    report_ok "User is in 'video' group (rootless backlight)"
+    report_ok "User is in 'video' group (webcam & backlight)"
 else
-    report_warn "User is NOT in 'video' group" "Run: sudo usermod -aG video \$USER"
+    report_warn "User is NOT in 'video' group" "Run: sudo usermod -aG video \$USER (or run fix-video)"
 fi
 
 if echo "$user_groups" | grep -qw "audio"; then
     report_ok "User is in 'audio' group"
 else
-    report_warn "User is NOT in 'audio' group" "Run: sudo usermod -aG audio \$USER"
+    report_warn "User is NOT in 'audio' group" "Run: sudo usermod -aG audio \$USER (or run fix-audio)"
+fi
+
+if compgen -G "/dev/video*" >/dev/null; then
+    report_ok "Webcam / V4L2 device nodes present (/dev/video*)"
+else
+    report_warn "No /dev/video* devices found" "Webcam not detected or blocked. Run: fix-video"
+fi
+
+if command -v v4l2-ctl >/dev/null 2>&1; then
+    report_ok "v4l-utils (v4l2-ctl) installed"
+else
+    report_warn "v4l-utils missing" "Install: sudo xbps-install -Sy v4l-utils (or run fix-video)"
 fi
 
 # 8. Tools & Assets
@@ -320,6 +332,7 @@ echo "  $(command -v thunar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -
 echo "  $(command -v mako >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Mako"
 echo "  $(command -v pipewire >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') PipeWire"
 echo "  $(command -v wireplumber >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') WirePlumber"
+echo "  $(compgen -G '/dev/video*' >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Webcam (/dev/video*)"
 echo "  $(command -v nmcli >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') NetworkManager"
 echo "  $(command -v bluetoothctl >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') BlueZ"
 echo "  $((pgrep -x dbus-daemon >/dev/null || pgrep -x dbus-broker >/dev/null) && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') DBus"

@@ -1,28 +1,28 @@
-/* Theme - Nord */
+/* Theme - Catppuccin-mocha */
 
 /* Core Theme Tokens */
-@define-color theme_bg #2e3440;
-@define-color theme_fg #d8dee9;
-@define-color theme_sidebar #3b4252;
-@define-color theme_surface #4c566a;
-@define-color theme_border #4c566a;
-@define-color theme_accent #88c0d0;
-@define-color theme_accent_alt #88c0d0;
-@define-color theme_selected_bg #88c0d0;
-@define-color theme_selected_fg #2e3440;
-@define-color theme_urgent #bf616a;
-@define-color theme_success #a3be8c;
+@define-color theme_bg #1e1e2e;
+@define-color theme_fg #cdd6f4;
+@define-color theme_sidebar #45475a;
+@define-color theme_surface #45475a;
+@define-color theme_border #45475a;
+@define-color theme_accent #b4befe;
+@define-color theme_accent_alt #94e2d5;
+@define-color theme_selected_bg #b4befe;
+@define-color theme_selected_fg #1e1e2e;
+@define-color theme_urgent #f38ba8;
+@define-color theme_success #a6e3a1;
 
 /* Short aliases */
-@define-color accent #88c0d0;
-@define-color accent_alt #88c0d0;
-@define-color bg #2e3440;
-@define-color fg #d8dee9;
-@define-color border #4c566a;
-@define-color sidebar #3b4252;
-@define-color surface #4c566a;
-@define-color urgent #bf616a;
-@define-color success #a3be8c;
+@define-color accent #b4befe;
+@define-color accent_alt #94e2d5;
+@define-color bg #1e1e2e;
+@define-color fg #cdd6f4;
+@define-color border #45475a;
+@define-color sidebar #45475a;
+@define-color surface #45475a;
+@define-color urgent #f38ba8;
+@define-color success #a6e3a1;
 
 /* GTK 3 Base Colors */
 @define-color theme_bg_color @theme_bg;

@@ -80,7 +80,6 @@ case "$cmd" in
             fi
         fi
 
-        notify "Wallpaper updated: $(basename "$target")"
         ;;
 
     restore)

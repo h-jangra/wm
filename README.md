@@ -120,7 +120,8 @@ The repository is organized into five clean, modular namespaces:
         ├── audio-check         # Diagnostic tool for PipeWire sinks and sources
         ├── fix-audio           # Automated repair script for PipeWire/ALSA stack
         ├── fix-bluetooth       # Automated repair script for BlueZ / rfkill
-        └── fix-dbus            # Automated repair script for system & session DBus
+        ├── fix-dbus            # Automated repair script for system & session DBus
+        └── fix-video           # Automated repair script for webcam / V4L2 / UVC stack
 ```
 
 ---
@@ -174,6 +175,7 @@ The installer is completely idempotent and safe to run multiple times. Supported
 ./install.sh --fix-audio
 ./install.sh --fix-dbus
 ./install.sh --fix-bluetooth
+./install.sh --fix-video
 ```
 
 ### What the Installer Does
@@ -327,6 +329,10 @@ fix-dbus
 # Bluetooth Daemon & Hardware
 # Enables bluetoothd service, enables AutoEnable in /etc/bluetooth/main.conf, unblocks rfkill:
 fix-bluetooth
+
+# Webcam / UVC / V4L2 Subsystem
+# Disables USB autosuspend, configures uvcvideo quirks, resolves WirePlumber libcamera conflict:
+fix-video
 ```
 
 ---

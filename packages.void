@@ -53,6 +53,7 @@ fd
 ripgrep
 xmirror
 github-cli
+v4l-utils
 
 # Build Tools (for source builds: MangoBar, Ly)
 meson

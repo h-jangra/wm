@@ -33,6 +33,7 @@ BUILD_MANGOBAR=0
 FIX_AUDIO=0
 FIX_DBUS=0
 FIX_BLUETOOTH=0
+FIX_VIDEO=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -77,6 +78,10 @@ while [[ $# -gt 0 ]]; do
             FIX_BLUETOOTH=1
             shift 1
             ;;
+        --fix-video)
+            FIX_VIDEO=1
+            shift 1
+            ;;
         -h|--help)
             echo "Usage: ./install.sh [OPTIONS]"
             echo ""
@@ -90,6 +95,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --fix-audio                 Diagnose and repair PipeWire/WirePlumber audio subsystem"
             echo "  --fix-dbus                  Diagnose and repair DBus system and session services"
             echo "  --fix-bluetooth             Diagnose and repair BlueZ Bluetooth daemon and rfkill"
+            echo "  --fix-video                 Diagnose and repair webcam / V4L2 / UVC video subsystem"
             echo "  -h, --help                  Show this help message"
             exit 0
             ;;
@@ -102,7 +108,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Handle standalone subsystem fix modules if requested
-if [[ $FIX_DBUS -eq 1 || $FIX_AUDIO -eq 1 || $FIX_BLUETOOTH -eq 1 ]]; then
+if [[ $FIX_DBUS -eq 1 || $FIX_AUDIO -eq 1 || $FIX_BLUETOOTH -eq 1 || $FIX_VIDEO -eq 1 ]]; then
     if [[ $FIX_DBUS -eq 1 ]]; then
         "$REPO_DIR/system/scripts/fix-dbus"
     fi
@@ -111,6 +117,9 @@ if [[ $FIX_DBUS -eq 1 || $FIX_AUDIO -eq 1 || $FIX_BLUETOOTH -eq 1 ]]; then
     fi
     if [[ $FIX_BLUETOOTH -eq 1 ]]; then
         "$REPO_DIR/system/scripts/fix-bluetooth"
+    fi
+    if [[ $FIX_VIDEO -eq 1 ]]; then
+        "$REPO_DIR/system/scripts/fix-video"
     fi
     exit 0
 fi
@@ -597,6 +606,7 @@ desktop_scripts=(
     "$REPO_DIR/system/scripts/fix-audio"
     "$REPO_DIR/system/scripts/fix-bluetooth"
     "$REPO_DIR/system/scripts/fix-dbus"
+    "$REPO_DIR/system/scripts/fix-video"
     "$REPO_DIR/components/mangobar/scripts/launch-bluetooth"
     "$REPO_DIR/system/services/pipewire-launcher.sh"
     "$REPO_DIR/system/diagnostics/wm-doctor"
