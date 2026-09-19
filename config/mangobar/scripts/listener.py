@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""
-scripts/listener.py - Keyboard Event Listener for Noctalia Keyviz
-
-Reads Linux /dev/input/event* devices using blocking I/O in reader threads,
-tracks modifier states, formats Keyviz-style key combinations,
-and emits JSON events to stdout for service.luau.
-"""
-
 import argparse
 import glob
 import json

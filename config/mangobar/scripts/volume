@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# volume: Hardware media keys handler for audio volume & microphone
-# Uses wpctl (PipeWire / WirePlumber) and sends OSD feedback via notify-send.
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"

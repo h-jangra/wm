@@ -1276,3 +1276,5 @@ window:backdrop,
 headerbar:backdrop button:not(.titlebutton) {
     color: alpha(@theme_fg, 0.5);
 }
+
+@import url("noctalia.css");

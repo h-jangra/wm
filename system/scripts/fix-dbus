@@ -20,7 +20,6 @@ msg_err()  { echo -e "${RED}[ERROR]${RESET} $*"; }
 
 echo -e "${BOLD}==> Diagnosing and Repairing DBus Subsystem...${RESET}"
 
-# 1. Package verification
 if command -v xbps-query >/dev/null 2>&1; then
     if ! xbps-query -s dbus 2>/dev/null | grep -q "^\[\*\]"; then
         msg_info "Installing missing dbus package..."
@@ -34,8 +33,6 @@ if command -v xbps-query >/dev/null 2>&1; then
     fi
 fi
 
-# 2. Machine ID synchronization
-# Missing /etc/machine-id causes DBus, elogind, and portals to fail silently
 if [[ ! -f /var/lib/dbus/machine-id && ! -f /etc/machine-id ]]; then
     msg_info "Generating machine-id..."
     sudo dbus-uuidgen --ensure=/etc/machine-id 2>/dev/null || true
@@ -54,7 +51,6 @@ else
     msg_ok "System machine-id is present."
 fi
 
-# 3. System runit service
 if [[ -d /etc/sv/dbus ]]; then
     if [[ ! -e /var/service/dbus && ! -L /var/service/dbus ]]; then
         msg_info "Enabling DBus runit service (/var/service/dbus)..."
@@ -68,7 +64,6 @@ if [[ -d /etc/sv/dbus ]]; then
         msg_ok "DBus runit service is linked in /var/service/."
     fi
 
-    # Restart / verify system bus if not running
     if ! pgrep -x dbus-daemon >/dev/null 2>&1; then
         msg_info "Starting DBus system service..."
         sudo sv up dbus 2>/dev/null || sudo sv restart dbus 2>/dev/null || true
@@ -78,13 +73,11 @@ else
     msg_warn "Service definition /etc/sv/dbus not found. Ensure dbus package is intact."
 fi
 
-# 4. User runtime directory
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 mkdir -p "$RUNTIME_DIR"
 chmod 0700 "$RUNTIME_DIR" 2>/dev/null || true
 export XDG_RUNTIME_DIR="$RUNTIME_DIR"
 
-# 5. Session Bus validation
 session_ok=0
 if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
     if command -v dbus-send >/dev/null 2>&1; then
@@ -103,7 +96,6 @@ else
     msg_info "Note: User session bus is created per-login (via start-mango / dbus-run-session)."
 fi
 
-# 6. Final verification
 if pgrep -x dbus-daemon >/dev/null 2>&1 || pgrep -x dbus-broker >/dev/null 2>&1; then
     echo ""
     msg_ok "${BOLD}DBus subsystem repair complete: System bus is active!${RESET}"

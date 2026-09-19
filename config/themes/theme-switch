@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# theme-switch: Central theme switcher for Void Linux + MangoWC rice
-# Usage: theme-switch <theme-id> [--no-wallpaper]
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-THEMES_DIR="${SCRIPT_DIR}"
-PRESETS_DIR="${THEMES_DIR}/presets"
-DEFS_DIR="${THEMES_DIR}/definitions"
+PRESETS_DIR="${SCRIPT_DIR}/presets"
+DEFS_DIR="${SCRIPT_DIR}/definitions"
 
 show_help() {
     echo "Usage: $(basename "$0") <theme-id> [--no-wallpaper]"
@@ -48,7 +43,6 @@ fi
 theme_id="$1"
 shift
 
-# Validate theme exists
 if [[ "$theme_id" != "dynamic" && ! -f "$DEFS_DIR/${theme_id}.json" && ! -f "$PRESETS_DIR/${theme_id}/theme.conf" && ! -f "$PRESETS_DIR/${theme_id}/theme-config.bash" ]]; then
     echo "Error: Unknown theme '${theme_id}'." >&2
     echo "Run '$(basename "$0") --help' to view available themes." >&2

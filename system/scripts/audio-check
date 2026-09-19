@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# audio-check: PipeWire & WirePlumber Audio Diagnostic Tool
-# Verifies daemons, sockets, pulse compatibility, sinks, sources, and defaults.
-# ==============================================================================
 set -euo pipefail
 
 echo "========================================================"
@@ -11,7 +7,6 @@ echo "========================================================"
 
 status=0
 
-# 1. Daemon Checks
 echo -n "[1/4] Checking Audio Daemons... "
 pw_pid=$(pgrep -x pipewire || true)
 wp_pid=$(pgrep -x wireplumber || true)
@@ -33,7 +28,6 @@ else
     status=1
 fi
 
-# 2. Runtime Socket Check
 echo -n "[2/4] Checking PipeWire Runtime Socket... "
 pw_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pipewire-0"
 if [[ -S "$pw_socket" ]]; then
@@ -44,7 +38,6 @@ else
     status=1
 fi
 
-# 3. wpctl Availability
 echo -n "[3/4] Checking wpctl Client... "
 if command -v wpctl >/dev/null 2>&1; then
     echo "OK ($(wpctl --version 2>/dev/null || echo 'available'))"
@@ -54,7 +47,6 @@ else
     status=1
 fi
 
-# 4. Device Enumeration
 echo "[4/4] Enumerating Audio Devices..."
 if command -v wpctl >/dev/null 2>&1 && [[ $status -eq 0 ]]; then
     echo ""

@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# battery-status: Display battery information notification via notify-send
-# ==============================================================================
 set -euo pipefail
 
 info=$(upower -d 2>/dev/null | grep -E 'percentage|state|time to' | head -4 || echo "No battery info available")

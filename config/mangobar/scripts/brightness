@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# brightness: Hardware monitor brightness control via brightnessctl
-# Rootless control via video group membership with OSD notifications.
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -28,8 +24,9 @@ notify_brightness() {
 
 get_brightness() {
     if command -v brightnessctl >/dev/null 2>&1; then
-        local max=$(brightnessctl max 2>/dev/null || echo 100)
-        local cur=$(brightnessctl get 2>/dev/null || echo 0)
+        local max cur
+        max=$(brightnessctl max 2>/dev/null || echo 100)
+        cur=$(brightnessctl get 2>/dev/null || echo 0)
         if [[ "$max" -gt 0 ]]; then
             echo $(( (cur * 100) / max ))
         else

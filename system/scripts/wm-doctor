@@ -114,7 +114,7 @@ echo "[3] Desktop Shell & Menus"
 if [[ -f "$REPO_DIR/config/themes/generated/palette.css" || -f "$HOME/.cache/wm-palette.css" || -f "$HOME/.cache/wm/palette.css" ]]; then
     report_ok "Dynamic theme palette active (config/themes/generated/palette.css)"
 else
-    report_warn "Dynamic theme palette not generated" "Run: $REPO_DIR/config/themes/generate-palette"
+    report_warn "Dynamic theme palette not generated" "Run: $REPO_DIR/config/themes/theme-from-wallpaper"
 fi
 
 if command -v rofi >/dev/null 2>&1; then
@@ -133,10 +133,6 @@ if [[ -d "$HOME/.config/mangobar" && -f "$HOME/.config/mangobar/config.jsonc" ]]
     report_ok "MangoBar user configuration valid (~/.config/mangobar/config.jsonc)"
 else
     report_warn "MangoBar user config missing" "Link via: ln -sfn $REPO_DIR/config/mangobar ~/.config/mangobar"
-fi
-
-if command -v eww >/dev/null 2>&1; then
-    report_ok "Eww widgets found ($(eww --version 2>&1 | head -n1))"
 fi
 
 if command -v foot >/dev/null 2>&1; then
@@ -338,8 +334,8 @@ echo "                   Doctor Dashboard                     "
 echo "========================================================"
 echo "  $(command -v mango >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') MangoWC Compositor"
 echo "  $(([[ -f /usr/share/wayland-sessions/mango.desktop || -f "$HOME/.local/share/wayland-sessions/mango.desktop" ]]) && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Session File (mango.desktop)"
-  echo "  $(command -v rofi >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Rofi (Launcher & Menus)"
-  echo "  $(command -v eww >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Eww (Status Bar & Widgets)"
+echo "  $(command -v mangobar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') MangoBar (Status Bar)"
+echo "  $(command -v rofi >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Rofi (Launcher & Menus)"
 echo "  $(command -v foot >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Foot"
 echo "  $(command -v thunar >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[33m!\033[0m') Thunar"
 echo "  $(command -v mako >/dev/null && echo -e '\033[32m✓\033[0m' || echo -e '\033[31m✗\033[0m') Mako"

@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-wifi: Interactive NetworkManager Wi-Fi Manager for Rofi
-# Provides scanning, connection, password prompts, and status indicators.
-# ==============================================================================
 set -euo pipefail
 
-CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-
-if [[ -f "$SCRIPT_DIR/wifi.rasi" ]]; then
-    RASI="$SCRIPT_DIR/wifi.rasi"
-elif [[ -f "$CONF_DIR/network/wifi.rasi" ]]; then
-    RASI="$CONF_DIR/network/wifi.rasi"
-elif [[ -f "$CONF_DIR/wifi.rasi" ]]; then
-    RASI="$CONF_DIR/wifi.rasi"
-else
-    RASI=""
-fi
+RASI="${SCRIPT_DIR}/wifi.rasi"
 
 notify() {
     notify-send -h string:x-canonical-private-synchronous:wm-wifi "Wi-Fi" "$1"
@@ -28,11 +14,10 @@ if ! command -v nmcli >/dev/null 2>&1; then
 fi
 
 if ! nmcli general status >/dev/null 2>&1; then
-    notify "NetworkManager daemon is not active. Run: sudo ln -s /etc/sv/NetworkManager /var/service/"
+    notify "NetworkManager daemon is not active."
     exit 1
 fi
 
-# Check Wi-Fi Radio Status
 wifi_status=$(nmcli -fields WIFI g 2>/dev/null || echo "disabled")
 
 if [[ "$wifi_status" =~ "disabled" ]]; then
@@ -44,17 +29,14 @@ if [[ "$wifi_status" =~ "disabled" ]]; then
     exit 0
 fi
 
-# Active connection
 active_ssid=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes:' | cut -d: -f2- || true)
 
-# Build Menu Options
 menu_header=""
 if [[ -n "$active_ssid" ]]; then
     menu_header="󰤨  Disconnect from '${active_ssid}'\n"
 fi
 menu_header="${menu_header}󰤮  Disable Wi-Fi\n󰑐  Rescan Networks"
 
-# Scan and list networks
 raw_networks=$(nmcli -t -f in-use,signal,bars,security,ssid dev wifi list --rescan no 2>/dev/null || true)
 
 formatted_list=""
@@ -111,14 +93,9 @@ elif [[ "$chosen" == *"Disconnect from"* ]]; then
     exit 0
 fi
 
-# Retrieve exact SSID from map
 selected_ssid="${entry_to_ssid["$chosen"]:-}"
+[[ -z "$selected_ssid" ]] && exit 0
 
-if [[ -z "$selected_ssid" ]]; then
-    exit 0
-fi
-
-# Check if connection is already known/saved
 known_con=$(nmcli -t -f name con show | grep "^${selected_ssid}$" || true)
 
 notify "Connecting to '${selected_ssid}'..."
@@ -127,12 +104,10 @@ if [[ -n "$known_con" ]]; then
     if nmcli con up id "$selected_ssid"; then
         notify "Connected to '${selected_ssid}'"
     else
-        notify "Failed to connect to '${selected_ssid}'. Try re-entering password."
+        notify "Failed to connect to '${selected_ssid}'."
     fi
 else
-    # New connection - prompt for password if secured
     is_secured=$(nmcli -t -f ssid,security dev wifi list | grep "^${selected_ssid}:" | cut -d: -f2- | grep -E 'WPA|WEP|802.1X' || true)
-    
     if [[ -n "$is_secured" ]]; then
         pass=$(rofi -dmenu -password -p "Password for ${selected_ssid}" ${RASI:+-theme "$RASI"})
         [[ -z "$pass" ]] && exit 0

@@ -1,22 +1,15 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# start-mango: Wayland Session Launcher for MangoWC on Void Linux
-# Sets required environment variables and boots MangoWC cleanly.
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Prepend desktop scripts and all component subdirectories to PATH
-export PATH="$REPO_DIR/config/rofi/launcher:$REPO_DIR/config/rofi/calendar:$REPO_DIR/config/rofi/clipboard:$REPO_DIR/config/rofi/powermenu:$REPO_DIR/config/rofi/network:$REPO_DIR/config/rofi/audio:$REPO_DIR/config/rofi/screenshot:$REPO_DIR/config/rofi/wallpaper:$REPO_DIR/config/rofi/theme-selector:$REPO_DIR/config/mangobar/scripts:$REPO_DIR/config/themes:$REPO_DIR/config/wallpaper:$REPO_DIR/config/eww/scripts:$REPO_DIR/system/scripts:$REPO_DIR/system/services:$HOME/.local/bin:$PATH"
+export PATH="$REPO_DIR/config/rofi/launcher:$REPO_DIR/config/rofi/calendar:$REPO_DIR/config/rofi/clipboard:$REPO_DIR/config/rofi/powermenu:$REPO_DIR/config/rofi/network:$REPO_DIR/config/rofi/audio:$REPO_DIR/config/rofi/screenshot:$REPO_DIR/config/rofi/wallpaper:$REPO_DIR/config/rofi/theme-selector:$REPO_DIR/config/rofi/keymaps:$REPO_DIR/config/mangobar/scripts:$REPO_DIR/config/themes:$REPO_DIR/config/wallpaper:$REPO_DIR/system/scripts:$REPO_DIR/system/services:$HOME/.local/bin:$PATH"
 
-# Session & Desktop Specifications
 export XDG_CURRENT_DESKTOP=mango
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=mango
 
-# Toolkit Wayland Backend Enforcements
 export MOZ_ENABLE_WAYLAND=1
 export QT_QPA_PLATFORM="wayland;xcb"
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
@@ -26,7 +19,6 @@ export SDL_VIDEODRIVER=wayland
 export _JAVA_AWT_WM_NONREPARENTING=1
 export NO_AT_BRIDGE=1
 
-# Ensure XDG Runtime Directory exists
 if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
     export XDG_RUNTIME_DIR="/run/user/$(id -u)"
     if [[ ! -d "$XDG_RUNTIME_DIR" ]]; then
@@ -35,17 +27,14 @@ if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
     fi
 fi
 
-# Ensure XDG State Directory exists
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 mkdir -p "$XDG_STATE_HOME/wm"
 
-# Configuration Path
 CONFIG_FILE="$HOME/.config/mango/config.conf"
 if [[ ! -f "$CONFIG_FILE" ]]; then
     CONFIG_FILE="$REPO_DIR/config/mango/config.conf"
 fi
 
-# Launch within DBus session if not already in one
 if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v dbus-run-session >/dev/null 2>&1; then
     exec dbus-run-session mango -c "$CONFIG_FILE" "$@"
 else

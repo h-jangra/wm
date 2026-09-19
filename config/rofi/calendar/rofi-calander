@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-calander: Minimal Calendar Popup for MangoWC / Rofi
-# - Pure Bash using util-linux `cal`
-# - 7-column grid (Monday to Sunday) with weekday top row
-# - Smooth month/year navigation across year boundaries
-# - Highlights today only when viewing current month
-# - Copies date to clipboard on click (wl-copy)
-# ==============================================================================
 set -euo pipefail
 
-# Toggle: close if calendar is already running
 if pgrep -f "calander\.rasi" >/dev/null 2>&1; then
     pkill -f "calander\.rasi" || true
     exit 0
 fi
 
-# Locate theme file
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
-
 THEME="$SCRIPT_DIR/calander.rasi"
 
 [[ -f "$THEME" ]] || {

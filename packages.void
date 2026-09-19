@@ -6,6 +6,7 @@
 # Core Wayland Compositor & Desktop Shell
 mangowc
 foot
+alacritty
 rofi
 swaybg
 swaylock
@@ -20,7 +21,6 @@ tumbler
 
 # Status Bar & Widgets (MangoBar built from source or package, Eww optional)
 mangobar
-# eww
 
 # Audio Subsystem (PipeWire + WirePlumber)
 pipewire

@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-keymaps: Minimal Wayland keybinding viewer for MangoWC
-# Dynamically parses MangoWC config and displays keymaps in Rofi
-# ==============================================================================
 set -euo pipefail
 
-# Toggle behavior: if already open, close it
 if pgrep -f "keymaps\.rasi" >/dev/null 2>&1; then
     pkill -f "keymaps\.rasi" || true
     exit 0
@@ -14,7 +9,6 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-# Locate MangoWC config
 CONF_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/mango/config.conf"
 if [[ ! -f "$CONF_FILE" ]]; then
     CONF_FILE="${REPO_DIR}/config/mango/config.conf"
@@ -25,14 +19,7 @@ if [[ ! -f "$CONF_FILE" ]]; then
     exit 1
 fi
 
-# Locate theme file
 RASI="${SCRIPT_DIR}/keymaps.rasi"
-if [[ ! -f "$RASI" ]]; then
-    RASI="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/keymaps/keymaps.rasi"
-fi
-if [[ ! -f "$RASI" ]]; then
-    RASI="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/theme.rasi"
-fi
 
 describe_action() {
     local raw="$1"
@@ -43,6 +30,7 @@ describe_action() {
         "spawn, rofi-launcher") echo "Application Launcher" ;;
         "spawn, rofi-powermenu") echo "Power Menu" ;;
         "spawn, rofi-keymaps"*) echo "Keybindings Cheat Sheet" ;;
+        "spawn, rofi-screenshot"*) echo "Screenshot Menu" ;;
         "spawn, theme-select") echo "Theme Selector" ;;
         "spawn, theme-from-wallpaper") echo "Generate Theme from Wallpaper" ;;
         "spawn, wallpaper-select") echo "Wallpaper Selector" ;;
@@ -53,7 +41,6 @@ describe_action() {
         "spawn, sh -c 'foot -a pkg-installer"*) echo "Package Installer (TUI)" ;;
         "spawn, sh -c 'grim -g \"\$(slurp)\" - | tesseract-ocr"*) echo "OCR Screenshot to Clipboard" ;;
         "spawn, sh -c 'grim -g \"\$(slurp)\" - | wl-copy'"*) echo "Screenshot Area to Clipboard" ;;
-        "spawn, sh -c \"~/ss\""*) echo "Interactive Screenshot" ;;
         "spawn, sh -c 'grim -g \"\$(mmsg"*) echo "Screenshot Active Window (satty)" ;;
         "toggle_named_scratchpad, foot-scratch"*) echo "Toggle Scratchpad Terminal" ;;
         "killclient"*) echo "Close Focused Window" ;;
@@ -113,7 +100,6 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         key="${BASH_REMATCH[3]}"
         action="${BASH_REMATCH[4]}"
 
-        # Trim whitespace
         mods="${mods#"${mods%%[![:space:]]*}"}"
         mods="${mods%"${mods##*[![:space:]]}"}"
         key="${key#"${key%%[![:space:]]*}"}"

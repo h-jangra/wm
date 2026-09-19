@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
-"""
-theme-from-wallpaper: Generate and apply dynamic theme from wallpaper via pywal16.
-Workflow:
-wallpaper -> pywal16 -> config/themes/generated/dynamic.json -> theme-engine -> entire desktop.
-Leaves static themes untouched.
-"""
-import sys
-import os
 import json
+import os
 import subprocess
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 THEMES_DIR = SCRIPT_DIR
@@ -49,7 +43,6 @@ def main():
 
     print(f"Extracting colors from: {target}...")
 
-    # Run wal with colorthief backend in user venv
     if os.path.isfile(VENV_WAL) and os.access(VENV_WAL, os.X_OK):
         wal_cmd = [VENV_WAL, "-i", target, "-n", "--backend", "colorthief", "-s", "-t", "-e", "-q"]
     else:
@@ -91,24 +84,17 @@ def main():
     c14 = colors.get("color14", c6)
     c15 = colors.get("color15", "#ffffff")
 
-    # Capsule background: clean dark surface
-    capsule_bg = c0
-    capsule_hover = c8
-    capsule_fg = fg
-    accent = c4
-    accent_alt = c5
-
     dynamic_palette = {
         "name": "Dynamic Wallpaper",
         "id": "dynamic",
         "background": bg,
         "foreground": fg,
-        "accent": accent,
-        "accent_alt": accent_alt,
+        "accent": c4,
+        "accent_alt": c5,
         "cursor": cursor,
-        "capsule_bg": capsule_bg,
-        "capsule_hover": capsule_hover,
-        "capsule_fg": capsule_fg,
+        "capsule_bg": c0,
+        "capsule_hover": c8,
+        "capsule_fg": fg,
         "border": c8,
         "selection_bg": c8,
         "selection_fg": c15,
@@ -116,7 +102,7 @@ def main():
         "ram": c4,
         "keyviz": c6,
         "recorder": c1,
-        "ws_focused": accent,
+        "ws_focused": c4,
         "ws_occupied": c5,
         "ws_empty": c8,
         "ws_urgent": c1,
@@ -144,15 +130,12 @@ def main():
         "wallpaper": target
     }
 
-    # Save to dynamic.json in generated directory
     dyn_path = os.path.join(GENERATED_DIR, "dynamic.json")
     with open(dyn_path, "w") as f:
         json.dump(dynamic_palette, f, indent=2)
 
-    # Apply the dynamic theme
     engine_cmd = [sys.executable, os.path.join(SCRIPT_DIR, "theme-engine.py"), "dynamic", "--no-wallpaper"]
     subprocess.run(engine_cmd, check=True)
-
     print(f"Dynamic theme derived from {os.path.basename(target)} applied successfully!")
 
 if __name__ == "__main__":

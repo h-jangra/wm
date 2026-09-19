@@ -6,6 +6,7 @@
 # Core Wayland Compositor & Desktop Shell
 mangowc
 foot
+alacritty
 rofi-wayland
 swaybg
 swaylock

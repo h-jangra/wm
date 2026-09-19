@@ -1,24 +1,9 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-screenshot: Lightweight Wayland Screenshot Utility
-# Uses grim and slurp, with active-window detection via MangoWC mmsg.
-# Saves to ~/Pictures/Screenshots and copies to clipboard with notification.
-# ==============================================================================
 set -euo pipefail
 
-CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 SAVE_DIR="$HOME/Pictures/Screenshots"
-
-if [[ -f "$SCRIPT_DIR/screenshot.rasi" ]]; then
-    RASI="$SCRIPT_DIR/screenshot.rasi"
-elif [[ -f "$CONF_DIR/screenshot/screenshot.rasi" ]]; then
-    RASI="$CONF_DIR/screenshot/screenshot.rasi"
-elif [[ -f "$CONF_DIR/screenshot.rasi" ]]; then
-    RASI="$CONF_DIR/screenshot.rasi"
-else
-    RASI=""
-fi
+RASI="${SCRIPT_DIR}/screenshot.rasi"
 
 notify() {
     local img="${1:-}"
@@ -67,7 +52,6 @@ case "$chosen" in
         if [[ -n "$geom" && "$geom" != "null,null nullxnull" ]]; then
             grim -g "$geom" "$filename"
         else
-            # Fallback to slurp if mmsg client geometry unavailable
             geom=$(slurp) || exit 0
             grim -g "$geom" "$filename"
         fi

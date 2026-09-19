@@ -80,7 +80,7 @@
         "signal": 1,
         "on-click": "recorder region",
         "on-click-right": "recorder fullscreen",
-        "on-click-middle": "recorder stop"
+        "on-click-middle": "recorder menu"
     },
 
     "custom/keyviz": {

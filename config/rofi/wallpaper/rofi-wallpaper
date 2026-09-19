@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-wallpaper: Interactive Rofi Wallpaper Selector with Thumbnails
-# Self-contained within config/rofi/wallpaper/
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -11,9 +7,7 @@ PRESETS_DIR="${REPO_DIR}/config/themes/presets"
 USER_WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
 
 RASI="${SCRIPT_DIR}/wallpaper.rasi"
-[[ -f "$RASI" ]] || RASI="${SCRIPT_DIR}/../theme.rasi"
 
-# Locate wallpaper-manager
 WALL_MGR="$(command -v wallpaper-manager || true)"
 if [[ -z "$WALL_MGR" || ! -x "$WALL_MGR" ]]; then
     WALL_MGR="${REPO_DIR}/config/wallpaper/wallpaper-manager"
@@ -33,7 +27,6 @@ declare -A seen_paths
 declare -a wallpapers=()
 menu_entries=""
 
-# Collect and deduplicate all valid image files with fast bash parameter expansions
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     if [[ -n "${seen_paths["$file"]:-}" ]]; then
@@ -49,22 +42,18 @@ while IFS= read -r file; do
     menu_entries+="${clean_display}\0icon\x1f${file}\n"
 done < <(find "${search_dirs[@]}" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) 2>/dev/null | sort)
 
-# Use -format i to get selected index (0-based) from rofi
 set +e
 selected_idx=$(printf "%b" "$menu_entries" | rofi -dmenu -format i -show-icons -p "Wallpapers" ${RASI:+-theme "$RASI"})
 status=$?
 set -e
 
-# Exit if cancelled (Esc or clicked outside)
 if [[ "$status" -ne 0 ]]; then
     exit 0
 fi
 
-# If a wallpaper was selected from the list, set it
 if [[ "$selected_idx" =~ ^[0-9]+$ && "$selected_idx" -ge 0 && "$selected_idx" -lt "${#wallpapers[@]}" ]]; then
     target_file="${wallpapers[$selected_idx]}"
     exec "$WALL_MGR" set "$target_file"
 else
-    # Did not select any wallpaper after typing (custom enter / -1) -> Randomize!
     exec "$WALL_MGR" random
 fi

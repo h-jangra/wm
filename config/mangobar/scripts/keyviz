@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-keyviz: Real-time keystroke visualizer HUD overlay & mangobar widget.
-Consumes events from listener.py, displays floating HUD popup on keystrokes,
-updates mangobar status, and manages background python processes cleanly.
-"""
-
 import ctypes
 import json
 import os

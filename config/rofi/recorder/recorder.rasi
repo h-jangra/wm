@@ -1,24 +1,18 @@
 @import "../theme.rasi"
 
-configuration {
-    show-icons: false;
-}
-
 window {
-    width:                       820px;
+    width:                       400px;
     location:                    center;
     anchor:                      center;
 }
 
 listview {
-    lines:                       14;
+    lines:                       5;
     columns:                     1;
+    spacing:                     6px;
+    fixed-height:                false;
 }
 
-entry {
-    placeholder:                 "Search keybindings...";
-}
-
-element-icon {
+inputbar {
     enabled:                     false;
 }

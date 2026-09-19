@@ -1,39 +1,31 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# reload: Non-destructive live reload for all desktop rice components
-# ==============================================================================
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 echo "Reloading desktop rice subsystems..."
 
-# 1. Status Bar (MangoBar)
 if pgrep -x mangobar >/dev/null 2>&1; then
     pkill -x mangobar 2>/dev/null || true
     sleep 0.2
     setsid -f mangobar >/dev/null 2>&1
     echo "  [✓] MangoBar reloaded"
-else
-    if command -v mangobar >/dev/null 2>&1; then
-        setsid -f mangobar >/dev/null 2>&1
-        echo "  [✓] MangoBar spawned"
-    fi
+elif command -v mangobar >/dev/null 2>&1; then
+    setsid -f mangobar >/dev/null 2>&1
+    echo "  [✓] MangoBar spawned"
 fi
 
-# 2. Mako notification daemon
 if command -v makoctl >/dev/null 2>&1; then
     makoctl reload 2>/dev/null || true
     echo "  [✓] Mako reloaded"
 fi
 
-# 3. MangoWC live config reload
 if command -v mmsg >/dev/null 2>&1; then
     mmsg dispatch reload_config >/dev/null 2>&1 || true
     echo "  [✓] MangoWC config reloaded"
 fi
 
-# 4. Wallpaper state
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 WALL_MGR="$(command -v wallpaper-manager || echo "${REPO_DIR}/config/wallpaper/wallpaper-manager")"
 if [[ -x "$WALL_MGR" ]]; then
     "$WALL_MGR" restore >/dev/null 2>&1 || true

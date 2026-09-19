@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# restore: Restore desktop rice configurations from a snapshot
-# Usage: restore [latest | <backup-folder-name>]
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -55,14 +51,6 @@ for item in config assets system packages.* install.sh README.md; do
     fi
 done
 
-if [[ -d "${target_path}/xfce4" ]]; then
-    cp -a "${target_path}/xfce4" "$HOME/.config/"
-fi
-if [[ -d "${target_path}/btop" ]]; then
-    cp -a "${target_path}/btop" "$HOME/.config/"
-fi
-
-# Reload active components
 if [[ -x "${SCRIPT_DIR}/reload" ]]; then
     "${SCRIPT_DIR}/reload"
 fi

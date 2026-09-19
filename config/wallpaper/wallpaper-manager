@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# wallpaper-manager: Lightweight Wayland wallpaper daemon manager using swaybg
-# Self-contained within config/wallpaper/
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -35,10 +31,7 @@ case "$cmd" in
             exit 1
         fi
 
-        # Get absolute canonical path
         target=$(readlink -f "$target")
-
-        # Fallback render target for swaybg (convert webp if needed since swaybg uses gdk-pixbuf)
         render_target="$target"
         if [[ "$target" == *.webp ]]; then
             converted="$CACHE_DIR/current_rendered_wallpaper.jpg"
@@ -49,14 +42,12 @@ case "$cmd" in
             fi
         fi
 
-        # 1. Launch new swaybg instance
         if command -v swaybg >/dev/null 2>&1; then
             swaybg -i "$render_target" -m fill >/dev/null 2>&1 &
             new_pid=$!
             disown "$new_pid" 2>/dev/null || true
             sleep 0.2
 
-            # Kill previous swaybg instances
             for pid in $(pgrep -x swaybg || true); do
                 if [[ "$pid" -ne "$new_pid" ]]; then
                     kill "$pid" >/dev/null 2>&1 || true
@@ -68,7 +59,6 @@ case "$cmd" in
 
         echo "$target" > "$CACHE_FILE"
 
-        # 2. If in dynamic theme mode and not skipping, trigger theme regeneration
         current_mode="static"
         [[ -f "$MODE_FILE" ]] && current_mode=$(cat "$MODE_FILE" | tr -d '[:space:]')
 
@@ -79,11 +69,9 @@ case "$cmd" in
                 "$theme_from_wall" "$target" >/dev/null 2>&1 || true
             fi
         fi
-
         ;;
 
     restore)
-        # Check cache
         if [[ -f "$CACHE_FILE" ]]; then
             cached=$(cat "$CACHE_FILE")
             if [[ -f "$cached" ]]; then
@@ -98,7 +86,6 @@ case "$cmd" in
             fi
         fi
 
-        # Check active theme preset wallpapers
         current_theme="catppuccin-mocha"
         [[ -f "$THEME_FILE" ]] && current_theme=$(cat "$THEME_FILE" | tr -d '[:space:]')
         if [[ -d "$PRESETS_DIR/$current_theme/wallpapers" ]]; then
@@ -108,7 +95,6 @@ case "$cmd" in
             fi
         fi
 
-        # Search any preset wallpapers
         first_found=$(find "$PRESETS_DIR" -type f \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" \) 2>/dev/null | head -n1 || true)
         if [[ -n "$first_found" ]]; then
             exec "$0" set "$first_found" --skip-theme
@@ -133,7 +119,7 @@ case "$cmd" in
         if [[ -n "$random_file" ]]; then
             exec "$0" set "$random_file"
         else
-            notify "No wallpapers found in preset directories or ~/Pictures/Wallpapers"
+            notify "No wallpapers found"
         fi
         ;;
 

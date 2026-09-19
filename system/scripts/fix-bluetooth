@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# fix-bluetooth: Diagnostic and automatic repair tool for BlueZ Bluetooth stack
-# Designed for Void Linux runit systems running MangoWC / Wayland.
-# Configures D-Bus, packages, user groups, runit service, rfkill,
-# BlueZ pairing policy (JustWorks / AlwaysPairable), and controller states.
-# ==============================================================================
 set -euo pipefail
 
 BOLD="\033[1m"
@@ -23,9 +17,6 @@ msg_step() { echo -e "\n${BOLD}${CYAN}==>${RESET} ${BOLD}$*${RESET}"; }
 
 CURRENT_USER="${USER:-$(id -un)}"
 
-# ------------------------------------------------------------------------------
-# Help
-# ------------------------------------------------------------------------------
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     echo "Usage: ./install.sh --fix-bluetooth"
     echo "   or: fix-bluetooth"
@@ -39,9 +30,6 @@ echo -e "${BOLD}========================================================${RESET}
 echo -e "${BOLD}      Bluetooth Subsystem Diagnostic & Repair Tool      ${RESET}"
 echo -e "${BOLD}========================================================${RESET}"
 
-# ------------------------------------------------------------------------------
-# Privilege Validation
-# ------------------------------------------------------------------------------
 ensure_sudo() {
     if [[ "$EUID" -ne 0 ]]; then
         if command -v sudo >/dev/null 2>&1; then
@@ -63,9 +51,6 @@ ensure_sudo() {
 
 ensure_sudo
 
-# ------------------------------------------------------------------------------
-# Hardware Detection
-# ------------------------------------------------------------------------------
 DETECTED_CHIPSET="Unknown"
 IS_INTEL=0
 IS_MEDIATEK=0
@@ -92,7 +77,6 @@ detect_controller_hardware() {
         IS_BROADCOM=1
     fi
 
-    # Fallback to btmgmt
     if [[ "$DETECTED_CHIPSET" == "Unknown" ]] && command -v btmgmt >/dev/null 2>&1; then
         local mgmt_info
         mgmt_info=$(btmgmt info 2>/dev/null || true)
@@ -114,11 +98,7 @@ detect_controller_hardware() {
 
 detect_controller_hardware
 
-# ------------------------------------------------------------------------------
-# 1. D-Bus Subsystem Verification (bluetoothd hard dependency)
-# ------------------------------------------------------------------------------
 msg_step "1/7 Verifying D-Bus IPC Subsystem"
-# /etc/sv/bluetoothd/run explicitly executes: sv check dbus || exit 1
 if [[ -d /etc/sv/dbus ]]; then
     if [[ ! -e /var/service/dbus && ! -L /var/service/dbus ]]; then
         msg_info "Enabling essential DBus runit service (/var/service/dbus)..."
@@ -135,9 +115,6 @@ else
     msg_warn "Service definition /etc/sv/dbus not found. Ensure dbus package is intact."
 fi
 
-# ------------------------------------------------------------------------------
-# 2. Package & Kernel Firmware Verification
-# ------------------------------------------------------------------------------
 msg_step "2/7 Verifying Bluetooth Packages & Hardware Firmware"
 missing_pkgs=()
 for pkg in bluez libspa-bluetooth; do
@@ -148,7 +125,6 @@ for pkg in bluez libspa-bluetooth; do
     fi
 done
 
-# Recommend/install firmware package matching detected chipset
 if command -v xbps-query >/dev/null 2>&1; then
     if [[ $IS_INTEL -eq 1 ]]; then
         if ! xbps-query -s "linux-firmware-intel" 2>/dev/null | grep -q "^\[\*\]"; then
@@ -172,9 +148,6 @@ else
     msg_ok "Essential packages and firmware are present (bluez, libspa-bluetooth, firmware)."
 fi
 
-# ------------------------------------------------------------------------------
-# 3. Hardware Permissions (bluetooth group)
-# ------------------------------------------------------------------------------
 msg_step "3/7 Configuring User Group Permissions"
 if getent group bluetooth >/dev/null 2>&1; then
     if id -nG "$CURRENT_USER" | grep -qw "bluetooth"; then
@@ -194,8 +167,6 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 4. Radio State (rfkill unblock)
-# ------------------------------------------------------------------------------
 msg_step "4/7 Checking Radio Blocking State (rfkill)"
 if command -v rfkill >/dev/null 2>&1; then
     rfkill_status=$(rfkill list bluetooth 2>/dev/null || true)
@@ -208,9 +179,6 @@ if command -v rfkill >/dev/null 2>&1; then
     msg_ok "Unblocked Bluetooth devices in rfkill."
 fi
 
-# ------------------------------------------------------------------------------
-# 5. Controller Health Check & Auto-Recovery
-# ------------------------------------------------------------------------------
 msg_step "5/7 Controller Health Check & Hardware Verification"
 msg_info "Detected Bluetooth hardware chipset: ${BOLD}${DETECTED_CHIPSET}${RESET}"
 
@@ -240,9 +208,6 @@ else
     msg_ok "Bluetooth HCI controller interface is active in /sys/class/bluetooth."
 fi
 
-# ------------------------------------------------------------------------------
-# 6. BlueZ Configuration (/etc/bluetooth/main.conf)
-# ------------------------------------------------------------------------------
 msg_step "6/7 Optimizing BlueZ Daemon Configuration & Pairing Policy"
 if [[ -f /etc/bluetooth/main.conf ]]; then
     set_conf_val() {
@@ -256,34 +221,17 @@ if [[ -f /etc/bluetooth/main.conf ]]; then
         fi
     }
 
-    # Policy AutoEnable: ensure adapters power on automatically
     set_conf_val "AutoEnable" "true" "Policy"
-
-    # FastConnectable: improve reconnection speed for headsets / keyboards
     set_conf_val "FastConnectable" "true" "General"
-
-    # Experimental: enable battery reporting and modern LE GATT features
     set_conf_val "Experimental" "true" "General"
-
-    # AlwaysPairable: allow incoming pairing requests even without external PIN agent
     set_conf_val "AlwaysPairable" "true" "General"
-
-    # PairableTimeout: stay permanently pairable (0 = disable timeout)
     set_conf_val "PairableTimeout" "0" "General"
-
-    # JustWorksRepairing: allow earbuds/headsets using JustWorks to re-pair seamlessly
-    # (prevents org.bluez.Error.AuthenticationRejected)
     set_conf_val "JustWorksRepairing" "always" "General"
-
-    # ControllerMode: dual mode supports both Classic (BR/EDR) and Bluetooth Low Energy (LE)
     set_conf_val "ControllerMode" "dual" "General"
 
     msg_ok "Configured AutoEnable, FastConnectable, AlwaysPairable, JustWorksRepairing=always, ControllerMode=dual."
 fi
 
-# ------------------------------------------------------------------------------
-# 7. Service Management, Controller Activation & Stale Cache Cleanup
-# ------------------------------------------------------------------------------
 msg_step "7/7 Service Management & Controller Activation"
 if [[ -d /etc/sv/bluetoothd ]]; then
     if [[ ! -e /var/service/bluetoothd && ! -L /var/service/bluetoothd ]]; then
@@ -298,7 +246,6 @@ if [[ -d /etc/sv/bluetoothd ]]; then
         msg_ok "Bluetoothd runit service is linked in /var/service/."
     fi
 
-    # Restart / start service cleanly to pick up new main.conf
     msg_info "Restarting bluetoothd supervisor..."
     sudo sv restart bluetoothd 2>/dev/null || sudo sv up bluetoothd 2>/dev/null || true
     sleep 1
@@ -306,7 +253,6 @@ else
     msg_warn "Service definition /etc/sv/bluetoothd not found."
 fi
 
-# Enable bondable / connectable states
 if command -v btmgmt >/dev/null 2>&1; then
     sudo btmgmt --index 0 power on >/dev/null 2>&1 || true
     sudo btmgmt --index 0 bondable on >/dev/null 2>&1 || true
@@ -316,19 +262,17 @@ if command -v hciconfig >/dev/null 2>&1; then
     sudo hciconfig hci0 up >/dev/null 2>&1 || true
 fi
 
-# Power on and pairable on via bluetoothctl
 if command -v bluetoothctl >/dev/null 2>&1; then
     bluetoothctl power on >/dev/null 2>&1 || true
     bluetoothctl pairable on >/dev/null 2>&1 || true
 
-    # Clean up stale half-paired cache entries that cause AuthenticationRejected
     devices_list=$(bluetoothctl devices 2>/dev/null || true)
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         dev_mac=$(echo "$line" | awk '{print $2}')
         dev_info=$(bluetoothctl info "$dev_mac" 2>/dev/null || true)
         if echo "$dev_info" | grep -qi "Paired: no" && echo "$dev_info" | grep -qi "Trusted: yes"; then
-            msg_warn "Cleaning stale half-paired cache for $dev_mac (prevents AuthenticationRejected)..."
+            msg_warn "Cleaning stale half-paired cache for $dev_mac..."
             bluetoothctl remove "$dev_mac" >/dev/null 2>&1 || true
         fi
     done <<< "$devices_list"
@@ -336,9 +280,6 @@ fi
 
 sleep 0.5
 
-# ------------------------------------------------------------------------------
-# Final Verification
-# ------------------------------------------------------------------------------
 daemon_running=0
 if pgrep -x bluetoothd >/dev/null 2>&1; then
     daemon_running=1
@@ -371,7 +312,6 @@ else
     echo -e "  • Controller:        ${YELLOW}No default controller found in BlueZ${RESET}"
 fi
 
-# Non-blocking kernel ring buffer check
 if command -v dmesg >/dev/null 2>&1; then
     recent_errors=$(dmesg 2>/dev/null | grep -iE "bluetooth|hci|firmware" | grep -iE "failed|error|timeout|denied" | tail -n 3 || true)
     if [[ -z "$recent_errors" ]] && sudo -n true 2>/dev/null; then

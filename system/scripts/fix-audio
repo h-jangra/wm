@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# fix-audio: Diagnostic and automatic repair tool for PipeWire / WirePlumber audio
-# Designed for Void Linux runit systems running MangoWC / Wayland.
-# Configures packages, user groups, ALSA routing, runtime sockets, and daemons.
-# ==============================================================================
 set -euo pipefail
 
 BOLD="\033[1m"
@@ -23,7 +18,6 @@ echo -e "${BOLD}==> Diagnosing and Repairing Audio Subsystem (PipeWire)...${RESE
 CURRENT_USER="${USER:-$(id -un)}"
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
-# 1. Package verification
 missing_pkgs=()
 for pkg in pipewire wireplumber alsa-pipewire libspa-bluetooth; do
     if command -v xbps-query >/dev/null 2>&1; then
@@ -44,7 +38,6 @@ else
     msg_ok "All essential audio packages are installed."
 fi
 
-# 2. Hardware permissions (audio group)
 if getent group audio >/dev/null 2>&1; then
     if id -nG "$CURRENT_USER" | grep -qw "audio"; then
         msg_ok "User '$CURRENT_USER' is in 'audio' group."
@@ -58,7 +51,6 @@ if getent group audio >/dev/null 2>&1; then
     fi
 fi
 
-# 3. ALSA PipeWire integration
 if [[ -f /usr/share/alsa/alsa.conf.d/50-pipewire.conf ]]; then
     if sudo mkdir -p /etc/alsa/conf.d 2>/dev/null; then
         sudo ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d/50-pipewire.conf 2>/dev/null || true
@@ -71,12 +63,10 @@ if [[ -f /usr/share/alsa/alsa.conf.d/50-pipewire.conf ]]; then
     fi
 fi
 
-# 4. Runtime directory & socket clean up
 mkdir -p "$RUNTIME_DIR"
 chmod 0700 "$RUNTIME_DIR" 2>/dev/null || true
 export XDG_RUNTIME_DIR="$RUNTIME_DIR"
 
-# 5. Restart audio daemons cleanly
 msg_info "Terminating any hung audio daemon instances..."
 pkill -u "$CURRENT_USER" -x pipewire 2>/dev/null || true
 pkill -u "$CURRENT_USER" -x wireplumber 2>/dev/null || true
@@ -89,10 +79,6 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 if [[ -x "$REPO_DIR/system/services/pipewire-launcher.sh" ]]; then
     "$REPO_DIR/system/services/pipewire-launcher.sh"
-elif [[ -x "$SCRIPT_DIR/../services/pipewire-launcher.sh" ]]; then
-    "$SCRIPT_DIR/../services/pipewire-launcher.sh"
-elif [[ -x "$SCRIPT_DIR/pipewire-launcher.sh" ]]; then
-    "$SCRIPT_DIR/pipewire-launcher.sh"
 else
     pipewire &
     sleep 0.2
@@ -102,14 +88,12 @@ else
 fi
 sleep 0.5
 
-# 6. Unmute and test
 if command -v wpctl >/dev/null 2>&1; then
     wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null || true
     sink_vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || echo "Active")
     msg_ok "Default audio sink unmuted ($sink_vol)."
 fi
 
-# 7. Verification
 if pgrep -u "$CURRENT_USER" -x pipewire >/dev/null 2>&1 && pgrep -u "$CURRENT_USER" -x wireplumber >/dev/null 2>&1; then
     echo ""
     msg_ok "${BOLD}Audio subsystem repair complete: PipeWire and WirePlumber are active!${RESET}"

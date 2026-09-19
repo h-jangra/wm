@@ -6,6 +6,7 @@
 # Core Wayland Compositor & Desktop Shell
 mangowc
 foot
+alacritty
 rofi-wayland
 swaybg
 swaylock
@@ -18,9 +19,8 @@ thunar-volman
 papirus-icon-theme
 tumbler
 
-# Status Bar & Widgets (MangoBar built from source, Eww optional)
+# Status Bar & Widgets (MangoBar built from source)
 mangobar
-eww
 
 # Audio Subsystem (PipeWire + WirePlumber)
 pipewire

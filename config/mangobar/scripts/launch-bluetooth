@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# launch-bluetooth: Toggle Bluetooth manager (bluetuith or rofi-bluetooth)
-# ==============================================================================
 set -euo pipefail
 
-# If bluetuith is already running, toggle it closed
 if pgrep -x bluetuith >/dev/null 2>&1; then
     pkill -x bluetuith 2>/dev/null || true
     exit 0
 fi
 
 if command -v bluetuith >/dev/null 2>&1; then
-    # Launch bluetuith in floating foot window with dedicated app-id
     if command -v footclient >/dev/null 2>&1 && footclient --version >/dev/null 2>&1; then
         footclient -a bluetuith -w 850x720 -T "bluetuith" -e bluetuith "$@" &
     elif command -v foot >/dev/null 2>&1; then
@@ -20,7 +15,6 @@ if command -v bluetuith >/dev/null 2>&1; then
         bluetuith "$@" &
     fi
 
-    # Ensure the newly created window gets immediate keyboard focus
     sleep 0.12
     if command -v mmsg >/dev/null 2>&1; then
         bid=$(mmsg get all-clients 2>/dev/null | jq -r '.clients[]? | select(.appid=="bluetuith" or .title=="bluetuith") | .id' 2>/dev/null | tail -n 1 || true)

@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# rofi-bluetooth: Interactive BlueZ Bluetooth Manager for Rofi
-# Provides scan, pair, trust, connect, disconnect, and power controls cleanly.
-# ==============================================================================
 set -euo pipefail
 
-CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-
-if [[ -f "$SCRIPT_DIR/bluetooth.rasi" ]]; then
-    RASI="$SCRIPT_DIR/bluetooth.rasi"
-elif [[ -f "$CONF_DIR/network/bluetooth.rasi" ]]; then
-    RASI="$CONF_DIR/network/bluetooth.rasi"
-elif [[ -f "$CONF_DIR/bluetooth.rasi" ]]; then
-    RASI="$CONF_DIR/bluetooth.rasi"
-else
-    RASI=""
-fi
+RASI="${SCRIPT_DIR}/bluetooth.rasi"
 
 notify() {
     notify-send -h string:x-canonical-private-synchronous:wm-bt "Bluetooth" "$1"
@@ -27,7 +13,6 @@ if ! command -v bluetoothctl >/dev/null 2>&1; then
     exit 1
 fi
 
-# Check controller status
 bt_show=$(bluetoothctl show 2>&1 || true)
 if echo "$bt_show" | grep -qi "No default controller"; then
     notify "No Bluetooth controller detected or daemon not running."
@@ -45,14 +30,12 @@ if [[ "$power_status" != "yes" ]]; then
     exit 0
 fi
 
-# Build device list
 menu_header="󰂲  Power Off Bluetooth\n󰑐  Scan for Nearby Devices (5s)\n--- Paired Devices ---"
 
 declare -A entry_to_mac
 declare -A entry_to_name
 declare -A entry_to_status
 
-# 1. Paired Devices
 paired_raw=$(bluetoothctl devices Paired 2>/dev/null || true)
 paired_entries=""
 
@@ -77,7 +60,6 @@ while IFS= read -r line; do
     entry_to_status["$entry"]="$is_conn"
 done <<< "$paired_raw"
 
-# 2. All other Discovered Devices
 all_raw=$(bluetoothctl devices 2>/dev/null || true)
 discovered_entries=""
 
@@ -87,7 +69,6 @@ while IFS= read -r line; do
     name=$(echo "$line" | cut -d' ' -f3-)
     [[ -z "$name" ]] && name="Unknown ($mac)"
 
-    # Skip if already in paired list
     if echo "$paired_raw" | grep -q "$mac"; then
         continue
     fi
@@ -105,7 +86,6 @@ if [[ -n "$discovered_entries" ]]; then
 fi
 
 chosen=$(printf "%b" "$menu_content" | rofi -dmenu -p "Bluetooth" ${RASI:+-theme "$RASI"})
-
 [[ -z "$chosen" ]] && exit 0
 
 if [[ "$chosen" == *"Power Off Bluetooth"* ]]; then
@@ -125,7 +105,6 @@ name="${entry_to_name["$chosen"]:-}"
 status="${entry_to_status["$chosen"]:-}"
 
 if [[ -z "$mac" ]]; then
-    # Fallback to regex extraction
     mac=$(echo "$chosen" | grep -oE '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' || true)
     name="Device"
 fi
@@ -160,7 +139,7 @@ elif [[ "$status" == "no" ]]; then
             if echo "$conn_res" | grep -qi "Connection successful" || bluetoothctl info "$mac" 2>/dev/null | grep -qi "Connected: yes"; then
                 notify "Connected to ${name}"
             else
-                notify "Failed to connect to ${name}. Ensure it is turned on and in range."
+                notify "Failed to connect to ${name}."
             fi
         fi
     elif [[ "$action" == *"Remove"* ]]; then
@@ -171,37 +150,29 @@ elif [[ "$status" == "no" ]]; then
         fi
     fi
 else
-    # Unpaired device
     action=$(printf "󰂱  Pair & Connect\n󰅖  Cancel\n" | rofi -dmenu -p "Pair: ${name}" ${RASI:+-theme "$RASI"})
     if [[ "$action" == *"Pair & Connect"* ]]; then
         notify "Pairing with ${name}..."
-
-        # Ensure adapter is power on and pairable
         bluetoothctl power on >/dev/null 2>&1 || true
         bluetoothctl pairable on >/dev/null 2>&1 || true
 
-        # Execute pairing with an auto-confirming NoInputNoOutput agent
-        # This prevents org.bluez.Error.AuthenticationRejected on headsets/earbuds/watches
         pair_cmd="power on\npairable on\ndefault-agent\npair ${mac}\nquit\n"
         pair_out=$(printf "%b" "$pair_cmd" | bluetoothctl --agent NoInputNoOutput 2>&1 || true)
 
-        # If rejected due to stale pairing keys or cache mismatch, remove and retry once cleanly
         if echo "$pair_out" | grep -qiE "AuthenticationRejected|Failed to pair"; then
             bluetoothctl remove "$mac" >/dev/null 2>&1 || true
             sleep 0.8
             pair_out=$(printf "%b" "$pair_cmd" | bluetoothctl --agent NoInputNoOutput 2>&1 || true)
         fi
 
-        # Trust and connect
         bluetoothctl trust "$mac" >/dev/null 2>&1 || true
         conn_out=$(bluetoothctl connect "$mac" 2>&1 || true)
 
-        # Check final connection or pair status
         info_out=$(bluetoothctl info "$mac" 2>/dev/null || true)
         if echo "$info_out" | grep -qi "Connected: yes"; then
             notify "Successfully paired and connected to ${name}"
         elif echo "$info_out" | grep -qi "Paired: yes"; then
-            notify "Paired with ${name}. Connecting in background..."
+            notify "Paired with ${name}."
         else
             err_msg=$(echo "$pair_out $conn_out" | grep -oE "Failed to .*" | head -n 1)
             notify "Pairing failed: ${err_msg:-Ensure device is in pairing mode}"
