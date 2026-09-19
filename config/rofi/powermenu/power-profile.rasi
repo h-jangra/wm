@@ -1,0 +1,40 @@
+@import "../theme.rasi"
+
+window {
+    width:                       660px;
+    location:                    northeast;
+    anchor:                      north;
+    x-offset:                    10px;
+    y-offset:                    10px;
+    border-radius:               8px;
+    border:                      1px;
+}
+
+mainbox {
+    spacing:                     12px;
+    children:                    [ "inputbar", "listview" ];
+}
+
+inputbar {
+  enabled: false;
+    padding:                     10px 14px;
+}
+
+listview {
+    lines:                       1;
+    columns:                     3;
+    spacing:                     10px;
+    cycle:                       true;
+    scrollbar:                   false;
+}
+
+element {
+    padding:                     12px 8px;
+    border-radius:               6px;
+}
+
+element-text {
+    horizontal-align:            0.5;
+    vertical-align:              0.5;
+    font:                        "Maple Mono NF 12.5";
+}

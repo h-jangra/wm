@@ -4,6 +4,7 @@
 # Designed for Void Linux runit systems running MangoWC / Wayland.
 # Configures user groups, USB autosuspend rules, uvcvideo module quirks,
 # WirePlumber libcamera/v4l2 conflict resolution, and video device permissions.
+# Fixes VIDIOC_DQBUF Invalid Argument via USB device reset.
 # ==============================================================================
 set -euo pipefail
 
@@ -181,12 +182,19 @@ msg_step "4/7 Disabling USB Autosuspend for UVC Webcams"
 # Webcams frequently freeze or drop frames (ioctl VIDIOC_DQBUF error) when
 # runtime power management puts USB video interfaces into autosuspend sleep.
 UDEV_RULE_FILE="/etc/udev/rules.d/99-webcam-powersave.rules"
-RULE_CONTENT='# Void Linux: Disable USB autosuspend for USB Video Class (UVC) webcam devices
-# Prevents ioctl(VIDIOC_DQBUF) timeouts and camera disconnects
-ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="0e", ATTR{../power/control}="on"
-ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="0e", ATTR{power/control}="on"
-ACTION=="add", SUBSYSTEM=="usb", DRIVERS=="uvcvideo", ATTR{power/control}="on"
-ACTION=="add", SUBSYSTEM=="video4linux", ATTR{../power/control}="on"
+RULE_CONTENT='# Void Linux: Disable USB autosuspend and LPM for UVC webcam devices
+# Prevents ioctl(VIDIOC_DQBUF) timeouts, AMD xHCI LPM resets, and camera disconnects
+# Match by specific Luxvisions HP webcam vendor/product (bDeviceClass=ef, not 0e)
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="30c9", ATTR{idProduct}=="0069", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+# Match any USB device whose interface implements Video class (0e) - covers generic UVC cameras
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", ATTR{bInterfaceClass}=="0e", GOTO="webcam_powersave"
+# Also match direct Video class devices (simple UVC devices that expose bDeviceClass=0e)
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{bDeviceClass}=="0e", GOTO="webcam_powersave"
+GOTO="webcam_powersave_end"
+LABEL="webcam_powersave"
+# Disable autosuspend on the device itself (walk up to parent usb_device)
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="30c9", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+LABEL="webcam_powersave_end"
 '
 
 if [[ -d /etc/udev/rules.d ]] || sudo mkdir -p /etc/udev/rules.d 2>/dev/null; then
@@ -198,11 +206,27 @@ if [[ -d /etc/udev/rules.d ]] || sudo mkdir -p /etc/udev/rules.d 2>/dev/null; th
     fi
 fi
 
-# Immediately wake up any currently connected USB video devices in sysfs
+# Configure usbcore quirks to disable Link Power Management (LPM - quirk 'k')
+# AMD Renoir/Cezanne xHCI controllers trigger USB disconnects when transitioning LPM states
+USBCORE_CONF="/etc/modprobe.d/usbcore.conf"
+if [[ -d /etc/modprobe.d ]] || sudo mkdir -p /etc/modprobe.d 2>/dev/null; then
+    echo "options usbcore quirks=30c9:0069:k autosuspend=-1" | sudo tee "$USBCORE_CONF" >/dev/null 2>&1 || true
+    msg_ok "Configured usbcore options in $USBCORE_CONF (quirks=30c9:0069:k autosuspend=-1)."
+fi
+
+# Apply usbcore parameters to running kernel if accessible
+if [[ -f /sys/module/usbcore/parameters/quirks ]]; then
+    echo "30c9:0069:k" | sudo tee /sys/module/usbcore/parameters/quirks >/dev/null 2>&1 || true
+fi
+if [[ -f /sys/module/usbcore/parameters/autosuspend ]]; then
+    echo -1 | sudo tee /sys/module/usbcore/parameters/autosuspend >/dev/null 2>&1 || true
+fi
+
+# Immediately wake up all connected USB video devices and upstream hub ports in sysfs
 woken_devices=0
-for p_ctrl in /sys/bus/usb/devices/*/power/control; do
+for p_ctrl in /sys/bus/usb/devices/*/power/control /sys/bus/usb/devices/usb*/1-0:1.0/usb*-port*/power/control; do
+    [[ -f "$p_ctrl" ]] || continue
     dev_dir="$(dirname "$p_ctrl")"
-    # Check if this USB device or any interface is a video device or uses uvcvideo
     is_cam=0
     if compgen -G "$dev_dir/*/video4linux" >/dev/null 2>&1; then
         is_cam=1
@@ -210,7 +234,10 @@ for p_ctrl in /sys/bus/usb/devices/*/power/control; do
         is_cam=1
     elif [[ -f "$dev_dir/bDeviceClass" ]] && [[ "$(cat "$dev_dir/bDeviceClass" 2>/dev/null)" == "0e" ]]; then
         is_cam=1
-    elif [[ -n "$USB_SYSFS_PATH" && "$dev_dir" == "$USB_SYSFS_PATH" ]]; then
+    elif [[ -n "$USB_SYSFS_PATH" && "$dev_dir" == "$USB_SYSFS_PATH"* ]]; then
+        is_cam=1
+    elif [[ "$p_ctrl" == *"usb"*"-port"* ]]; then
+        # Wake up upstream root hub ports
         is_cam=1
     fi
 
@@ -224,7 +251,7 @@ for p_ctrl in /sys/bus/usb/devices/*/power/control; do
 done
 
 if [[ $woken_devices -gt 0 ]]; then
-    msg_ok "Disabled USB autosuspend on $woken_devices active camera USB interface(s)."
+    msg_ok "Disabled USB autosuspend on $woken_devices active camera USB interface(s) and port(s)."
 else
     msg_ok "Camera USB power management verified (not autosuspended)."
 fi
@@ -260,6 +287,13 @@ if [[ -d /etc/modprobe.d ]] || sudo mkdir -p /etc/modprobe.d 2>/dev/null; then
     fi
 fi
 
+# Dynamically apply parameters to running uvcvideo module if currently loaded
+if [[ -d /sys/module/uvcvideo/parameters ]]; then
+    echo 128 | sudo tee /sys/module/uvcvideo/parameters/quirks >/dev/null 2>&1 || true
+    echo 1 | sudo tee /sys/module/uvcvideo/parameters/nodrop >/dev/null 2>&1 || true
+    echo 5000 | sudo tee /sys/module/uvcvideo/parameters/timeout >/dev/null 2>&1 || true
+fi
+
 # ------------------------------------------------------------------------------
 # Step 6: WirePlumber Dual-Backend Conflict Resolution
 # ------------------------------------------------------------------------------
@@ -274,9 +308,11 @@ WP_DROPIN_DIR="$HOME/.config/wireplumber/wireplumber.conf.d"
 mkdir -p "$WP_DROPIN_DIR"
 cat > "$WP_DROPIN_DIR/99-disable-libcamera.conf" << 'EOF'
 # Disable WirePlumber's libcamera monitor to eliminate device locking & V4L2 conflicts
+# Explicitly enable v4l2 monitor so the webcam appears as a PipeWire video source
 wireplumber.profiles = {
   main = {
     monitor.libcamera = disabled
+    monitor.v4l2 = enabled
   }
 }
 EOF
@@ -287,15 +323,81 @@ if [[ -d /etc/wireplumber/wireplumber.conf.d ]] || sudo mkdir -p /etc/wireplumbe
     sudo cp "$WP_DROPIN_DIR/99-disable-libcamera.conf" /etc/wireplumber/wireplumber.conf.d/ 2>/dev/null || true
 fi
 
-# Restart WirePlumber if running so it applies the single clean V4L2 monitor
-if pgrep -u "$CURRENT_USER" -x wireplumber >/dev/null 2>&1; then
-    msg_info "Restarting WirePlumber to apply backend changes..."
-    pkill -u "$CURRENT_USER" -x wireplumber 2>/dev/null || true
-    sleep 0.5
-    wireplumber &
-    sleep 0.5
-    msg_ok "WirePlumber restarted."
+# Stop WirePlumber, PipeWire, and PipeWire-Pulse before reloading the kernel driver
+msg_info "Releasing media server device handles..."
+pkill -u "$CURRENT_USER" -x wireplumber 2>/dev/null || true
+pkill -u "$CURRENT_USER" -x pipewire-pulse 2>/dev/null || true
+pkill -u "$CURRENT_USER" -x pipewire 2>/dev/null || true
+sleep 1
+
+# ------------------------------------------------------------------------------
+# USB Device Reset — Critical fix for VIDIOC_DQBUF: Invalid argument
+# ------------------------------------------------------------------------------
+# This error means the camera firmware entered a stalled/DFU state.
+# A USB-level reset (USBDEVFS_RESET ioctl) clears this without a full replug.
+# This is the equivalent of unplugging and replugging the camera electrically.
+usb_reset_done=0
+
+# Strategy 1: usbreset utility (part of usbutils on some distros)
+if command -v usbreset >/dev/null 2>&1 && [[ -n "$DETECTED_USB_ID" ]]; then
+    msg_info "Performing USB device reset via usbreset (30c9:0069)..."
+    if sudo usbreset "30c9:0069" 2>/dev/null; then
+        usb_reset_done=1
+        msg_ok "USB device reset completed via usbreset."
+    fi
 fi
+
+# Strategy 2: Python USBDEVFS_RESET ioctl via /dev/bus/usb
+if [[ $usb_reset_done -eq 0 ]] && command -v python3 >/dev/null 2>&1; then
+    # Find the /dev/bus/usb/BBB/DDD path for our camera
+    usb_dev_path=""
+    if [[ -n "$DETECTED_USB_ID" ]]; then
+        while IFS= read -r bus_line; do
+            bus=$(echo "$bus_line" | awk '{print $2}')
+            dev=$(echo "$bus_line" | awk '{print $4}' | tr -d ':')
+            usb_dev_path=$(printf "/dev/bus/usb/%03d/%03d" "$bus" "$dev" 2>/dev/null || true)
+            break
+        done < <(lsusb 2>/dev/null | grep "30c9:0069" || true)
+    fi
+    if [[ -n "$usb_dev_path" && -c "$usb_dev_path" ]]; then
+        msg_info "Performing USB device reset via USBDEVFS_RESET ioctl ($usb_dev_path)..."
+        if sudo python3 -c "
+import fcntl, os, sys
+USBDEVFS_RESET = 0x5514
+fd = os.open('$usb_dev_path', os.O_WRONLY)
+fcntl.ioctl(fd, USBDEVFS_RESET, 0)
+os.close(fd)
+print('USB reset OK')
+" 2>/dev/null; then
+            usb_reset_done=1
+            msg_ok "USB device reset completed (USBDEVFS_RESET ioctl)."
+        else
+            msg_warn "USB device reset failed (try: sudo usbreset 30c9:0069)."
+        fi
+    fi
+fi
+
+# Strategy 3: Unbind/rebind at the USB device level (not just interface)
+if [[ $usb_reset_done -eq 0 && -n "$USB_SYSFS_PATH" ]]; then
+    usb_dev_name="$(basename "$USB_SYSFS_PATH")"
+    msg_info "USB reset via driver unbind/rebind for device $usb_dev_name..."
+    echo "$usb_dev_name" | sudo tee /sys/bus/usb/drivers/usb/unbind >/dev/null 2>&1 || true
+    sleep 0.5
+    echo "$usb_dev_name" | sudo tee /sys/bus/usb/drivers/usb/bind >/dev/null 2>&1 || true
+    usb_reset_done=1
+    msg_ok "USB device rebound via sysfs."
+fi
+
+if [[ $usb_reset_done -eq 1 ]]; then
+    # Wait for the device to fully re-enumerate after reset
+    msg_info "Waiting for camera to re-enumerate after USB reset..."
+    for _i in $(seq 1 8); do
+        sleep 0.5
+        if [[ -e /dev/video0 ]]; then break; fi
+    done
+fi
+
+
 
 # ------------------------------------------------------------------------------
 # Step 7: Driver Reinitialization & Stream Verification
@@ -304,14 +406,53 @@ msg_step "7/7 Reinitializing Kernel Module & Testing Video Capture"
 
 # Reload uvcvideo module to apply quirks and clear any hardware stalled state
 if lsmod | grep -q "^uvcvideo\b"; then
-    msg_info "Reloading uvcvideo kernel driver..."
-    # Close any open file descriptors by temporarily resetting the module
-    sudo modprobe -r uvcvideo 2>/dev/null || true
-    sleep 0.5
-    sudo modprobe uvcvideo 2>/dev/null || true
-    sleep 1
-    msg_ok "Kernel driver uvcvideo reloaded."
+    msg_info "Reloading uvcvideo kernel driver with optimized parameters..."
+    if sudo modprobe -r uvcvideo 2>/dev/null; then
+        sleep 0.5
+        sudo modprobe uvcvideo quirks=128 nodrop=1 timeout=5000 2>/dev/null || sudo modprobe uvcvideo 2>/dev/null || true
+        sleep 1
+        msg_ok "Kernel driver uvcvideo reloaded."
+    else
+        msg_info "uvcvideo in use by subsystem; re-binding USB camera interface drivers..."
+        for iface in /sys/bus/usb/drivers/uvcvideo/*:*; do
+            if [[ -d "$iface" ]]; then
+                dev_b="$(basename "$iface")"
+                echo "$dev_b" | sudo tee /sys/bus/usb/drivers/uvcvideo/unbind >/dev/null 2>&1 || true
+                echo "$dev_b" | sudo tee /sys/bus/usb/drivers/uvcvideo/bind >/dev/null 2>&1 || true
+            fi
+        done
+        msg_ok "USB camera interface drivers rebound."
+    fi
+else
+    msg_info "Loading uvcvideo kernel driver..."
+    sudo modprobe uvcvideo quirks=128 nodrop=1 timeout=5000 2>/dev/null || sudo modprobe uvcvideo 2>/dev/null || true
 fi
+
+# Restart PipeWire and WirePlumber cleanly in background (redirect output to prevent terminal spam)
+msg_info "Restarting PipeWire & WirePlumber with V4L2 backend..."
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+if [[ -x "$REPO_DIR/system/services/pipewire-launcher.sh" ]]; then
+    "$REPO_DIR/system/services/pipewire-launcher.sh" >/dev/null 2>&1 &
+elif [[ -x "$SCRIPT_DIR/../services/pipewire-launcher.sh" ]]; then
+    "$SCRIPT_DIR/../services/pipewire-launcher.sh" >/dev/null 2>&1 &
+else
+    pipewire >/dev/null 2>&1 &
+    sleep 0.3
+    wireplumber >/dev/null 2>&1 &
+    sleep 0.3
+    pipewire-pulse >/dev/null 2>&1 &
+fi
+
+# Wait up to 4 seconds for WirePlumber to enumerate the V4L2 camera
+msg_info "Waiting for WirePlumber to enumerate V4L2 camera device..."
+for _i in $(seq 1 8); do
+    sleep 0.5
+    if wpctl status 2>/dev/null | grep -A5 "Video" | grep -qiE "Camera|v4l2|HP Wide|video0"; then
+        break
+    fi
+done
+msg_ok "PipeWire and WirePlumber active."
 
 # Re-check device nodes
 primary_video_node=""
@@ -336,16 +477,54 @@ if [[ -n "$primary_video_node" ]]; then
     sudo chgrp video /dev/video* 2>/dev/null || true
 fi
 
-# Test video capture capabilities
-test_passed=0
+# Query formats
 if [[ -n "$primary_video_node" ]] && command -v v4l2-ctl >/dev/null 2>&1; then
     msg_info "Querying formats for ${primary_video_node}..."
     fmts=$(v4l2-ctl -d "$primary_video_node" --list-formats 2>/dev/null | grep -E "\[[0-9]+\]" || true)
     if [[ -n "$fmts" ]]; then
         echo "$fmts" | sed 's/^/    /'
-        test_passed=1
     fi
 fi
+
+# Test actual live video streaming — try MJPEG explicitly first (best compatibility),
+# then YUYV, then ffmpeg, to avoid false failures from format negotiation errors.
+stream_tested=0
+stream_error_msg=""
+if [[ -n "$primary_video_node" ]]; then
+    msg_info "Verifying live video capture on ${primary_video_node}..."
+    if command -v v4l2-ctl >/dev/null 2>&1; then
+        # Attempt 1: MJPEG at 640x480 (most reliable for Luxvisions/UVC cameras)
+        if v4l2-ctl -d "$primary_video_node" --set-fmt-video=width=640,height=480,pixelformat=MJPG >/dev/null 2>&1; then
+            if stream_err=$(timeout 4 v4l2-ctl --stream-mmap --stream-count=1 -d "$primary_video_node" 2>&1); then
+                stream_tested=1
+            else
+                stream_error_msg="$stream_err"
+            fi
+        fi
+        # Attempt 2: YUYV at 640x360
+        if [[ $stream_tested -eq 0 ]]; then
+            if v4l2-ctl -d "$primary_video_node" --set-fmt-video=width=640,height=360,pixelformat=YUYV >/dev/null 2>&1; then
+                if stream_err=$(timeout 4 v4l2-ctl --stream-mmap --stream-count=1 -d "$primary_video_node" 2>&1); then
+                    stream_tested=1
+                else
+                    stream_error_msg="$stream_err"
+                fi
+            fi
+        fi
+    fi
+    # Attempt 3: ffmpeg with explicit MJPEG input format
+    if [[ $stream_tested -eq 0 ]] && command -v ffmpeg >/dev/null 2>&1; then
+        if timeout 4 ffmpeg -hide_banner -loglevel error \
+            -f v4l2 -input_format mjpeg -video_size 640x480 -framerate 30 \
+            -i "$primary_video_node" -frames:v 1 -f null - >/dev/null 2>&1; then
+            stream_tested=1
+        elif timeout 4 ffmpeg -hide_banner -loglevel error \
+            -f v4l2 -i "$primary_video_node" -frames:v 1 -f null - >/dev/null 2>&1; then
+            stream_tested=1
+        fi
+    fi
+fi
+
 
 # Check PipeWire video source
 pw_camera_found=0
@@ -353,6 +532,17 @@ if command -v wpctl >/dev/null 2>&1; then
     wp_status=$(wpctl status 2>/dev/null || true)
     if echo "$wp_status" | grep -A 10 "Video" | grep -qiE "Camera|v4l2"; then
         pw_camera_found=1
+    fi
+fi
+
+# Check active kernel quirks parameter
+active_quirks="Default"
+if [[ -f /sys/module/uvcvideo/parameters/quirks ]]; then
+    q_val=$(cat /sys/module/uvcvideo/parameters/quirks 2>/dev/null || true)
+    if [[ "$q_val" == "128" ]]; then
+        active_quirks="Active (quirks=128)"
+    elif [[ "$q_val" != "4294967295" && -n "$q_val" ]]; then
+        active_quirks="Active (quirks=$q_val)"
     fi
 fi
 
@@ -379,10 +569,10 @@ else
     echo -e "  • USB Autosuspend:   ${YELLOW}Default (check /etc/udev/rules.d/)${RESET}"
 fi
 
-if [[ -f "$MODPROBE_FILE" ]]; then
-    echo -e "  • Driver Quirks:     ${GREEN}Enabled (quirks=128 nodrop=1 timeout=5000)${RESET}"
+if [[ "$active_quirks" != "Default" ]]; then
+    echo -e "  • Driver Quirks:     ${GREEN}$active_quirks nodrop=1 timeout=5000${RESET}"
 else
-    echo -e "  • Driver Quirks:     ${YELLOW}Default kernel options${RESET}"
+    echo -e "  • Driver Quirks:     ${YELLOW}Default kernel options (reboot or module reload needed)${RESET}"
 fi
 
 if [[ -f "$WP_DROPIN_DIR/99-disable-libcamera.conf" ]]; then
@@ -397,29 +587,77 @@ else
     echo -e "  • User Permissions:  ${YELLOW}Pending re-login for 'video' group${RESET}"
 fi
 
+if [[ ${usb_reset_done:-0} -eq 1 ]]; then
+    echo -e "  • USB Device Reset:  ${GREEN}Performed (clears VIDIOC_DQBUF stalled state)${RESET}"
+else
+    echo -e "  • USB Device Reset:  ${YELLOW}Not performed (install usbutils or ensure python3 available)${RESET}"
+fi
+
 if [[ $pw_camera_found -eq 1 ]]; then
     echo -e "  • PipeWire Stream:   ${GREEN}Camera source recognized in PipeWire${RESET}"
+else
+    echo -e "  • PipeWire Stream:   ${RED}Camera NOT visible in PipeWire (WirePlumber issue)${RESET}"
+fi
+
+if [[ $stream_tested -eq 1 ]]; then
+    echo -e "  • Video Streaming:   ${GREEN}Verified working (frames successfully captured)${RESET}"
+else
+    echo -e "  • Video Streaming:   ${RED}Unable to capture stream (VIDIOC_DQBUF failure)${RESET}"
+    if [[ -n "${stream_error_msg:-}" ]]; then
+        echo -e "    └─ Error: ${YELLOW}$(echo "$stream_error_msg" | head -1)${RESET}"
+    fi
 fi
 echo -e "${BOLD}----------------------------------------------------------------${RESET}"
 
-if [[ -n "$primary_video_node" && $test_passed -eq 1 ]]; then
+if [[ -n "$primary_video_node" && $stream_tested -eq 1 ]]; then
     echo ""
-    msg_ok "${BOLD}Webcam repair complete: Device ${primary_video_node} is ready for use!${RESET}"
+    msg_ok "${BOLD}Webcam repair complete: Device ${primary_video_node} is streaming video!${RESET}"
     echo "You can test video streaming with:"
     echo "  • mpv av://v4l2:${primary_video_node} --profile=low-latency --untimed"
     echo "  • ffplay -f v4l2 -i ${primary_video_node}"
+    if [[ $pw_camera_found -eq 0 ]]; then
+        echo ""
+        msg_warn "V4L2 stream works but camera is NOT yet in PipeWire."
+        echo "  Try: systemctl --user restart wireplumber"
+        echo "  Then check: wpctl status | grep -A10 Video"
+    fi
     exit 0
 elif [[ -n "$primary_video_node" ]]; then
     echo ""
-    msg_ok "Webcam device node created (${primary_video_node})."
-    echo "If video still fails, verify that physical privacy shutter / Fn toggle key is open."
-    exit 0
+    msg_warn "Camera detected at ${primary_video_node}, but streaming still failed (VIDIOC_DQBUF: Invalid argument)."
+    echo ""
+    echo "${BOLD}This means the camera firmware is in a stalled state. Try these steps in order:${RESET}"
+    echo ""
+    echo "  1. ${BOLD}Re-run this script${RESET} (the USB reset may now have cleared the stall):"
+    echo "     fix-video"
+    echo ""
+    echo "  2. ${BOLD}Hard Power Drain (most effective for HP Victus / Luxvisions cameras):${RESET}"
+    echo "     The webcam firmware entered a DFU/lockup state that USB reset alone cannot clear."
+    echo "     Shut down laptop → Unplug AC adapter → Hold Power Button 25-30 seconds → Power on."
+    echo ""
+    echo "  3. ${BOLD}Disable Windows Fast Startup (if dual-booting):${RESET}"
+    echo "     Windows Fast Startup locks USB power state, causing ENODEV/DQBUF errors in Linux."
+    echo "     Windows: Control Panel → Power Options → Uncheck 'Turn on fast startup'."
+    echo ""
+    echo "  4. ${BOLD}Add persistent kernel boot parameter:${RESET}"
+    echo "     Append to your bootloader config (e.g., /etc/default/grub or dracut.conf):"
+    echo "     usbcore.autosuspend=-1"
+    echo ""
+    echo "  5. ${BOLD}Browser: 'Cannot detect any active stream of media content':${RESET}"
+    echo "     This browser error occurs when the camera is not visible to PipeWire/WebRTC."
+    echo "     After V4L2 streaming works, ensure WirePlumber sees the camera:"
+    echo "     • Run: wpctl status | grep -A10 Video"
+    echo "     • If empty: systemctl --user restart wireplumber"
+    echo "     • Firefox: Ensure 'media.navigator.mediadatadecoder.vpx.enabled' is true in about:config"
+    echo "     • Chrome/Chromium: Open chrome://flags → enable 'WebRTC PipeWire camera'"
+    echo "     • Test in browser: open https://webcamtests.com"
+    exit 1
 else
     echo ""
-    msg_warn "No video device detected after reload."
+    msg_warn "No video device detected."
     echo "Tips for laptop webcams:"
-    echo "  1. Check for a physical sliding privacy switch above your screen."
-    echo "  2. Toggle your laptop's camera Fn key (commonly Fn+F10, Fn+F8, or Fn+F6)."
-    echo "  3. Verify that the integrated camera is enabled in BIOS/UEFI settings."
+    echo "  1. Check for physical sliding privacy switch above your screen."
+    echo "  2. Toggle laptop camera Fn key (Fn+F10 / Fn+F8 / Fn+F6)."
+    echo "  3. Verify integrated camera is enabled in BIOS/UEFI settings."
     exit 1
 fi

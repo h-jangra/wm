@@ -7,7 +7,7 @@ target="$repo/backups/backup-$tag"
 
 mkdir -p "$target"
 
-for item in components dotfiles assets system packages.void install.sh README.md; do
+for item in config assets system packages.* install.sh README.md; do
     if [[ -e "$repo/$item" ]]; then
         cp -a "$repo/$item" "$target/"
     fi

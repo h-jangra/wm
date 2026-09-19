@@ -1,0 +1,16 @@
+@import "../theme.rasi"
+
+window {
+    width:                       600px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       9;
+    columns:                     1;
+}
+
+entry {
+    placeholder:                 "Search clipboard history...";
+}

@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Prepend desktop scripts and all component subdirectories to PATH
-export PATH="$REPO_DIR/components/rofi/launcher:$REPO_DIR/components/rofi/calendar:$REPO_DIR/components/rofi/clipboard:$REPO_DIR/components/rofi/powermenu:$REPO_DIR/components/rofi/network:$REPO_DIR/components/rofi/audio:$REPO_DIR/components/rofi/screenshot:$REPO_DIR/components/rofi/wallpaper:$REPO_DIR/components/rofi/theme-selector:$REPO_DIR/components/mangobar/scripts:$REPO_DIR/components/themes:$REPO_DIR/components/wallpaper:$REPO_DIR/components/eww/scripts:$REPO_DIR/system/scripts:$REPO_DIR/system/services:$REPO_DIR/system/diagnostics:$HOME/.local/bin:$PATH"
+export PATH="$REPO_DIR/config/rofi/launcher:$REPO_DIR/config/rofi/calendar:$REPO_DIR/config/rofi/clipboard:$REPO_DIR/config/rofi/powermenu:$REPO_DIR/config/rofi/network:$REPO_DIR/config/rofi/audio:$REPO_DIR/config/rofi/screenshot:$REPO_DIR/config/rofi/wallpaper:$REPO_DIR/config/rofi/theme-selector:$REPO_DIR/config/mangobar/scripts:$REPO_DIR/config/themes:$REPO_DIR/config/wallpaper:$REPO_DIR/config/eww/scripts:$REPO_DIR/system/scripts:$REPO_DIR/system/services:$HOME/.local/bin:$PATH"
 
 # Session & Desktop Specifications
 export XDG_CURRENT_DESKTOP=mango
@@ -42,7 +42,7 @@ mkdir -p "$XDG_STATE_HOME/wm"
 # Configuration Path
 CONFIG_FILE="$HOME/.config/mango/config.conf"
 if [[ ! -f "$CONFIG_FILE" ]]; then
-    CONFIG_FILE="$REPO_DIR/dotfiles/mango/config.conf"
+    CONFIG_FILE="$REPO_DIR/config/mango/config.conf"
 fi
 
 # Launch within DBus session if not already in one

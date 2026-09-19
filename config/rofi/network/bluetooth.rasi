@@ -1,0 +1,16 @@
+@import "../theme.rasi"
+
+window {
+    width:                       480px;
+    location:                    center;
+    anchor:                      center;
+}
+
+listview {
+    lines:                       8;
+    columns:                     1;
+}
+
+entry {
+    placeholder:                 "Bluetooth devices & actions...";
+}

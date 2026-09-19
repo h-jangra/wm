@@ -34,7 +34,7 @@ fi
 # 4. Wallpaper state
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-WALL_MGR="$(command -v wallpaper-manager || echo "${REPO_DIR}/components/wallpaper/wallpaper-manager")"
+WALL_MGR="$(command -v wallpaper-manager || echo "${REPO_DIR}/config/wallpaper/wallpaper-manager")"
 if [[ -x "$WALL_MGR" ]]; then
     "$WALL_MGR" restore >/dev/null 2>&1 || true
     echo "  [✓] Wallpaper restored"

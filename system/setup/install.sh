@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# ==============================================================================
 # install.sh: Void Linux Desktop Installer
 # Configures MangoWC, Eww, Fuzzel, Foot, PipeWire, runit, repos, and optional Ly DM.
 #
 # Idempotent, safe to run multiple times, manages Void repos/mirrors & services.
-# ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -129,9 +127,6 @@ echo -e "${BOLD}      Void Linux × MangoWC Minimal Desktop Installer    ${RESET
 echo -e "${BOLD}========================================================${RESET}"
 echo ""
 
-# ------------------------------------------------------------------------------
-# 1. Distro Detection
-# ------------------------------------------------------------------------------
 msg_info "Checking target operating system..."
 
 is_void=0
@@ -160,9 +155,6 @@ else
     msg_ok "Void Linux detected successfully."
 fi
 
-# ------------------------------------------------------------------------------
-# 2. Void Linux Repositories & Mirror Configuration
-# ------------------------------------------------------------------------------
 if [[ $is_void -eq 1 ]]; then
     msg_info "Checking Void Linux repositories..."
 
@@ -220,9 +212,6 @@ if [[ $is_void -eq 1 ]]; then
     sudo xbps-install -S || msg_warn "Repository index synchronization completed with warnings."
 fi
 
-# ------------------------------------------------------------------------------
-# 3. Package Installation (Void Linux XBPS)
-# ------------------------------------------------------------------------------
 if [[ $is_void -eq 1 && -f "$REPO_DIR/packages.void" ]]; then
     msg_info "Checking required XBPS packages against installed state..."
     pkg_file="$REPO_DIR/packages.void"    
@@ -316,9 +305,6 @@ if [[ $is_void -eq 1 && -f "$REPO_DIR/packages.void" ]]; then
     fi
 fi
 
-# ------------------------------------------------------------------------------
-# 4. MangoBar Build & Installation (Source: https://github.com/mangowm/mangobar)
-# ------------------------------------------------------------------------------
 msg_info "Checking MangoBar (native status bar for MangoWC)..."
 
 do_build_mangobar=0
@@ -406,32 +392,35 @@ if [[ $do_build_mangobar -eq 1 ]]; then
     fi
 fi
 
-# ------------------------------------------------------------------------------
-# 5. Runit Services Configuration
-# ------------------------------------------------------------------------------
 if [[ $is_void -eq 1 ]]; then
     msg_info "Executing runit service setup..."
     bash "$REPO_DIR/system/services/runit-setup.sh"
 fi
 
-# ------------------------------------------------------------------------------
-# 6. Configuration Backup & Symlinking (Idempotent)
-# ------------------------------------------------------------------------------
+if declare -f setup_user_groups >/dev/null 2>&1; then
+    setup_user_groups
+elif [[ -f "$REPO_DIR/install.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "$REPO_DIR/install.sh"
+    setup_user_groups
+fi
+
 msg_info "Setting up configuration symlinks..."
 mkdir -p "$HOME/.config"
 
 CONFIG_TARGETS=(
-    "dotfiles/mango:mango"
-    "components/mangobar:mangobar"
-    "components/rofi:rofi"
-    "dotfiles/foot:foot"
-    "dotfiles/mako:mako"
-    "dotfiles/fontconfig:fontconfig"
-    "dotfiles/thunar:Thunar"
-    "dotfiles/gtk-3.0:gtk-3.0"
-    "dotfiles/btop:btop"
-    "components/eww:eww"
-    "components/themes:themes"
+    "config/mango:mango"
+    "config/mangobar:mangobar"
+    "config/rofi:rofi"
+    "config/foot:foot"
+    "config/mako:mako"
+    "config/fontconfig:fontconfig"
+    "config/thunar:Thunar"
+    "config/gtk-3.0:gtk-3.0"
+    "config/btop:btop"
+    "config/eww:eww"
+    "config/themes:themes"
+    "config/wallpaper:wallpaper"
 )
 
 backup_needed=0
@@ -478,12 +467,12 @@ done
 mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/wm"
 mkdir -p "$HOME/.cache/wm"
 
-# Ensure themes/foot.ini and dotfiles/foot/colors.ini exist for Foot terminal
-if [[ ! -e "$REPO_DIR/components/themes/foot.ini" && -f "$REPO_DIR/components/themes/generated/foot.ini" ]]; then
-    ln -sfn "generated/foot.ini" "$REPO_DIR/components/themes/foot.ini"
+# Ensure themes/foot.ini and config/foot/colors.ini exist for Foot terminal
+if [[ ! -e "$REPO_DIR/config/themes/foot.ini" && -f "$REPO_DIR/config/themes/generated/foot.ini" ]]; then
+    ln -sfn "generated/foot.ini" "$REPO_DIR/config/themes/foot.ini"
 fi
-if [[ ! -f "$REPO_DIR/dotfiles/foot/colors.ini" && -f "$REPO_DIR/components/themes/generated/foot.ini" ]]; then
-    cp "$REPO_DIR/components/themes/generated/foot.ini" "$REPO_DIR/dotfiles/foot/colors.ini"
+if [[ ! -f "$REPO_DIR/config/foot/colors.ini" && -f "$REPO_DIR/config/themes/generated/foot.ini" ]]; then
+    cp "$REPO_DIR/config/themes/generated/foot.ini" "$REPO_DIR/config/foot/colors.ini"
 fi
 
 # Symlink entire wm repository to ~/.config/wm for convenience (idempotent)
@@ -495,17 +484,17 @@ fi
 
 # Thunar xfconf configuration (~/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml)
 mkdir -p "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
-if [[ ! -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml" ]] || ! cmp -s "$REPO_DIR/dotfiles/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"; then
-    cp "$REPO_DIR/dotfiles/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
+if [[ ! -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml" ]] || ! cmp -s "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"; then
+    cp "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
     msg_ok "Configured Thunar preferences (xfce4/thunar.xml)."
 fi
 
 # GTK 4.0 theme configuration (~/.config/gtk-4.0)
 mkdir -p "$HOME/.config/gtk-4.0"
-if [[ -f "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" ]]; then
-    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
-    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/theme.css" "$HOME/.config/gtk-4.0/theme.css"
-    ln -sf "$REPO_DIR/dotfiles/gtk-3.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
+if [[ -f "$REPO_DIR/config/gtk-3.0/gtk.css" ]]; then
+    ln -sf "$REPO_DIR/config/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
+    ln -sf "$REPO_DIR/config/gtk-3.0/theme.css" "$HOME/.config/gtk-4.0/theme.css"
+    ln -sf "$REPO_DIR/config/gtk-3.0/settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
     msg_ok "Configured GTK 4.0 dark theme symlinks."
 fi
 
@@ -520,9 +509,6 @@ if command -v gsettings >/dev/null 2>&1; then
     msg_ok "Configured GSettings (dark mode, Papirus-Dark, Maple Mono)."
 fi
 
-# ------------------------------------------------------------------------------
-# 7. Font Installation (Idempotent)
-# ------------------------------------------------------------------------------
 msg_info "Checking bundled icon fonts..."
 FONT_DIR="$HOME/.local/share/fonts/wm"
 mkdir -p "$FONT_DIR"
@@ -548,56 +534,53 @@ if [[ -d "$REPO_DIR/assets/fonts" ]]; then
     fi
 fi
 
-# ------------------------------------------------------------------------------
-# 8. Script Permissions & System Binaries (Idempotent)
-# ------------------------------------------------------------------------------
 msg_info "Setting script execution permissions..."
-chmod +x "$REPO_DIR"/components/mangobar/scripts/* \
-         "$REPO_DIR"/components/rofi/*/*.sh \
-         "$REPO_DIR"/components/eww/scripts/* \
-         "$REPO_DIR"/components/wallpaper/* \
-         "$REPO_DIR"/components/themes/theme-* \
-         "$REPO_DIR"/components/themes/generate-palette \
+chmod +x "$REPO_DIR"/config/mangobar/scripts/* \
+         "$REPO_DIR"/config/rofi/*/*.sh \
+         "$REPO_DIR"/config/eww/scripts/* \
+         "$REPO_DIR"/config/wallpaper/* \
+         "$REPO_DIR"/config/themes/theme-* \
+         "$REPO_DIR"/config/themes/generate-palette \
          "$REPO_DIR"/system/scripts/* \
          "$REPO_DIR"/system/services/*.sh \
-         "$REPO_DIR"/system/diagnostics/* \
          "$REPO_DIR"/system/setup/install.sh \
          "$REPO_DIR"/install.sh 2>/dev/null || true
 msg_ok "Desktop scripts, component helpers, and services made executable."
 
 # Symlink all desktop scripts to /usr/local/bin and ~/.local/bin
 desktop_scripts=(
-    "$REPO_DIR/components/mangobar/scripts/"*
-    "$REPO_DIR/components/rofi/launcher/launcher.sh"
-    "$REPO_DIR/components/rofi/launcher/rofi-launcher"
-    "$REPO_DIR/components/rofi/calendar/rofi-calander"
-    "$REPO_DIR/components/rofi/clipboard/clipboard.sh"
-    "$REPO_DIR/components/rofi/clipboard/rofi-clipboard"
-    "$REPO_DIR/components/rofi/clipboard/clipboard-menu"
-    "$REPO_DIR/components/rofi/powermenu/powermenu.sh"
-    "$REPO_DIR/components/rofi/powermenu/rofi-powermenu"
-    "$REPO_DIR/components/rofi/network/wifi.sh"
-    "$REPO_DIR/components/rofi/network/rofi-wifi"
-    "$REPO_DIR/components/rofi/network/bluetooth.sh"
-    "$REPO_DIR/components/rofi/network/rofi-bluetooth"
-    "$REPO_DIR/components/rofi/audio/audio.sh"
-    "$REPO_DIR/components/rofi/audio/rofi-audio"
-    "$REPO_DIR/components/rofi/screenshot/screenshot.sh"
-    "$REPO_DIR/components/rofi/screenshot/rofi-screenshot"
-    "$REPO_DIR/components/rofi/wallpaper/wallpaper.sh"
-    "$REPO_DIR/components/rofi/wallpaper/rofi-wallpaper"
-    "$REPO_DIR/components/rofi/theme-selector/theme-selector.sh"
-    "$REPO_DIR/components/rofi/theme-selector/rofi-theme"
-    "$REPO_DIR/components/rofi/theme-selector/theme-select"
-    "$REPO_DIR/components/eww/scripts/eww-toggle"
-    "$REPO_DIR/components/wallpaper/wallpaper-manager"
-    "$REPO_DIR/components/wallpaper/wallpaper-switch"
-    "$REPO_DIR/components/wallpaper/wallpaper-random"
-    "$REPO_DIR/components/wallpaper/wallpaper-select"
-    "$REPO_DIR/components/themes/theme-engine.py"
-    "$REPO_DIR/components/themes/theme-switch"
-    "$REPO_DIR/components/themes/theme-from-wallpaper"
-    "$REPO_DIR/components/themes/generate-palette"
+    "$REPO_DIR/config/mangobar/scripts/"*
+    "$REPO_DIR/config/rofi/launcher/launcher.sh"
+    "$REPO_DIR/config/rofi/launcher/rofi-launcher"
+    "$REPO_DIR/config/rofi/calendar/rofi-calander"
+    "$REPO_DIR/config/rofi/clipboard/clipboard.sh"
+    "$REPO_DIR/config/rofi/clipboard/rofi-clipboard"
+    "$REPO_DIR/config/rofi/clipboard/clipboard-menu"
+    "$REPO_DIR/config/rofi/powermenu/powermenu.sh"
+    "$REPO_DIR/config/rofi/powermenu/rofi-powermenu"
+    "$REPO_DIR/config/rofi/network/wifi.sh"
+    "$REPO_DIR/config/rofi/network/rofi-wifi"
+    "$REPO_DIR/config/rofi/network/bluetooth.sh"
+    "$REPO_DIR/config/rofi/network/rofi-bluetooth"
+    "$REPO_DIR/config/rofi/audio/audio.sh"
+    "$REPO_DIR/config/rofi/audio/rofi-audio"
+    "$REPO_DIR/config/rofi/screenshot/screenshot.sh"
+    "$REPO_DIR/config/rofi/screenshot/rofi-screenshot"
+    "$REPO_DIR/config/rofi/wallpaper/wallpaper.sh"
+    "$REPO_DIR/config/rofi/wallpaper/rofi-wallpaper"
+    "$REPO_DIR/config/rofi/theme-selector/theme-selector.sh"
+    "$REPO_DIR/config/rofi/theme-selector/rofi-theme"
+    "$REPO_DIR/config/rofi/theme-selector/theme-select"
+    "$REPO_DIR/config/rofi/keymaps/rofi-keymaps"
+    "$REPO_DIR/config/eww/scripts/eww-toggle"
+    "$REPO_DIR/config/wallpaper/wallpaper-manager"
+    "$REPO_DIR/config/wallpaper/wallpaper-switch"
+    "$REPO_DIR/config/wallpaper/wallpaper-random"
+    "$REPO_DIR/config/wallpaper/wallpaper-select"
+    "$REPO_DIR/config/themes/theme-engine.py"
+    "$REPO_DIR/config/themes/theme-switch"
+    "$REPO_DIR/config/themes/theme-from-wallpaper"
+    "$REPO_DIR/config/themes/generate-palette"
     "$REPO_DIR/system/scripts/start-mango"
     "$REPO_DIR/system/scripts/reload"
     "$REPO_DIR/system/scripts/backup"
@@ -607,9 +590,9 @@ desktop_scripts=(
     "$REPO_DIR/system/scripts/fix-bluetooth"
     "$REPO_DIR/system/scripts/fix-dbus"
     "$REPO_DIR/system/scripts/fix-video"
-    "$REPO_DIR/components/mangobar/scripts/launch-bluetooth"
+    "$REPO_DIR/config/mangobar/scripts/launch-bluetooth"
     "$REPO_DIR/system/services/pipewire-launcher.sh"
-    "$REPO_DIR/system/diagnostics/wm-doctor"
+    "$REPO_DIR/system/scripts/wm-doctor"
 )
 
 mkdir -p "$HOME/.local/bin"
@@ -668,19 +651,16 @@ if [[ -f /usr/share/wayland-sessions/mango.desktop ]]; then
 fi
 
 # Initialize dynamic theme palette
-if [[ -x "$REPO_DIR/components/themes/theme-engine.py" ]]; then
-    if [[ ! -f "$REPO_DIR/components/themes/generated/palette.css" ]]; then
+if [[ -x "$REPO_DIR/config/themes/theme-engine.py" ]]; then
+    if [[ ! -f "$REPO_DIR/config/themes/generated/palette.css" ]]; then
         msg_info "Initializing default theme palette (catppuccin-mocha)..."
-        python3 "$REPO_DIR/components/themes/theme-engine.py" catppuccin-mocha --no-wallpaper >/dev/null 2>&1 || true
+        python3 "$REPO_DIR/config/themes/theme-engine.py" catppuccin-mocha --no-wallpaper >/dev/null 2>&1 || true
         msg_ok "Theme palette initialized."
     else
         msg_ok "Theme palette already active."
     fi
 fi
 
-# ------------------------------------------------------------------------------
-# 9. Optional Login Manager Setup (Ly)
-# ------------------------------------------------------------------------------
 if [[ -z "$LOGIN_MANAGER" ]]; then
     # Detect if Ly is already installed and enabled as a service
     ly_is_installed=0
@@ -814,6 +794,16 @@ EOF
             sudo cp "$REPO_DIR/system/services/ly/config.ini" /etc/ly/config.ini
             msg_ok "Deployed /etc/ly/config.ini."
         fi
+
+        # Ensure session log is disabled so ~/ly-session.log is not created on every login
+        if [[ -f /etc/ly/config.ini ]]; then
+            if grep -q "^session_log[[:space:]]*=" /etc/ly/config.ini; then
+                sudo sed -i 's/^session_log[[:space:]]*=.*/session_log = null/' /etc/ly/config.ini
+            else
+                echo "session_log = null" | sudo tee -a /etc/ly/config.ini >/dev/null
+            fi
+        fi
+        rm -f "$HOME/ly-session.log"
     fi
 
     # Handle runit service enablement on Void Linux
@@ -877,13 +867,20 @@ elif [[ "$LOGIN_MANAGER" != "none" ]]; then
     msg_warn "Unknown login manager option: '$LOGIN_MANAGER'. Valid options: 'ly', 'none'."
 fi
 
-# ------------------------------------------------------------------------------
-# 10. System Verification (wm-doctor)
-# ------------------------------------------------------------------------------
+# Ensure session log is disabled in Ly DM if present
+if [[ -f /etc/ly/config.ini ]] && command -v sudo >/dev/null 2>&1; then
+    if ! grep -q "^session_log[[:space:]]*=" /etc/ly/config.ini; then
+        echo "session_log = null" | sudo tee -a /etc/ly/config.ini >/dev/null
+    else
+        sudo sed -i 's/^session_log[[:space:]]*=.*/session_log = null/' /etc/ly/config.ini
+    fi
+    rm -f "$HOME/ly-session.log"
+fi
+
 echo ""
 msg_info "Running wm-doctor system diagnosis..."
 echo ""
-bash "$REPO_DIR/system/diagnostics/wm-doctor" || true
+bash "$REPO_DIR/system/scripts/wm-doctor" || true
 
 echo ""
 echo -e "${BOLD}========================================================${RESET}"

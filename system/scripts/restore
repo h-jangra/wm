@@ -49,7 +49,7 @@ fi
 
 echo "Restoring desktop rice from: ${target_path}..."
 
-for item in components dotfiles assets system packages.void install.sh README.md config themes scripts wallpapers state; do
+for item in config assets system packages.* install.sh README.md; do
     if [[ -e "${target_path}/${item}" ]]; then
         cp -a "${target_path}/${item}" "${REPO_DIR}/"
     fi

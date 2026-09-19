@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# wallpaper-select: Interactive Rofi Wallpaper Selector
+# Delegating to config/rofi/wallpaper/wallpaper.sh
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+ROFI_WALL="${REPO_DIR}/config/rofi/wallpaper/wallpaper.sh"
+if [[ -x "$ROFI_WALL" ]]; then
+    exec "$ROFI_WALL" "$@"
+elif command -v rofi-wallpaper >/dev/null 2>&1; then
+    exec rofi-wallpaper "$@"
+else
+    exec "$SCRIPT_DIR/wallpaper-manager" random
+fi

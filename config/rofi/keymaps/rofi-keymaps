@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-keymaps: Minimal Wayland keybinding viewer for MangoWC
+# Dynamically parses MangoWC config and displays keymaps in Rofi
+# ==============================================================================
+set -euo pipefail
+
+# Toggle behavior: if already open, close it
+if pgrep -f "keymaps\.rasi" >/dev/null 2>&1; then
+    pkill -f "keymaps\.rasi" || true
+    exit 0
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+# Locate MangoWC config
+CONF_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/mango/config.conf"
+if [[ ! -f "$CONF_FILE" ]]; then
+    CONF_FILE="${REPO_DIR}/config/mango/config.conf"
+fi
+
+if [[ ! -f "$CONF_FILE" ]]; then
+    notify-send "Keymaps" "MangoWC config file not found."
+    exit 1
+fi
+
+# Locate theme file
+RASI="${SCRIPT_DIR}/keymaps.rasi"
+if [[ ! -f "$RASI" ]]; then
+    RASI="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/keymaps/keymaps.rasi"
+fi
+if [[ ! -f "$RASI" ]]; then
+    RASI="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/theme.rasi"
+fi
+
+describe_action() {
+    local raw="$1"
+    case "$raw" in
+        "spawn, foot") echo "Terminal (foot)" ;;
+        "spawn, thunar") echo "File Manager (thunar)" ;;
+        "spawn, firefox") echo "Web Browser (firefox)" ;;
+        "spawn, rofi-launcher") echo "Application Launcher" ;;
+        "spawn, rofi-powermenu") echo "Power Menu" ;;
+        "spawn, rofi-keymaps"*) echo "Keybindings Cheat Sheet" ;;
+        "spawn, theme-select") echo "Theme Selector" ;;
+        "spawn, theme-from-wallpaper") echo "Generate Theme from Wallpaper" ;;
+        "spawn, wallpaper-select") echo "Wallpaper Selector" ;;
+        "spawn, clipboard-menu") echo "Clipboard History" ;;
+        "spawn, swaylock"*) echo "Lock Screen (swaylock)" ;;
+        "spawn, hyprpicker"*) echo "Color Picker (hyprpicker)" ;;
+        "spawn, sh -c \"foot nvim\""*) echo "Neovim Editor (foot nvim)" ;;
+        "spawn, sh -c 'foot -a pkg-installer"*) echo "Package Installer (TUI)" ;;
+        "spawn, sh -c 'grim -g \"\$(slurp)\" - | tesseract-ocr"*) echo "OCR Screenshot to Clipboard" ;;
+        "spawn, sh -c 'grim -g \"\$(slurp)\" - | wl-copy'"*) echo "Screenshot Area to Clipboard" ;;
+        "spawn, sh -c \"~/ss\""*) echo "Interactive Screenshot" ;;
+        "spawn, sh -c 'grim -g \"\$(mmsg"*) echo "Screenshot Active Window (satty)" ;;
+        "toggle_named_scratchpad, foot-scratch"*) echo "Toggle Scratchpad Terminal" ;;
+        "killclient"*) echo "Close Focused Window" ;;
+        "reload_config"*) echo "Reload MangoWC Config" ;;
+        "togglefullscreen"*) echo "Toggle Fullscreen" ;;
+        "togglemaximizescreen"*) echo "Toggle Maximize Window" ;;
+        "togglefloating"*) echo "Toggle Floating Window" ;;
+        "toggleoverlay"*) echo "Toggle Window Overlay" ;;
+        "toggleoverview"*) echo "Toggle Workspace Overview" ;;
+        "minimized"*) echo "Minimize Window" ;;
+        "restore_minimized"*) echo "Restore Minimized Window" ;;
+        "focuslast"*) echo "Focus Last Active Window" ;;
+        "switch_layout"*) echo "Cycle Layout (Tile / Scroller)" ;;
+        "focusdir, left"*) echo "Focus Window Left" ;;
+        "focusdir, right"*) echo "Focus Window Right" ;;
+        "focusdir, up"*) echo "Focus Window Up" ;;
+        "focusdir, down"*) echo "Focus Window Down" ;;
+        "exchange_client, left"*) echo "Swap Window Left" ;;
+        "exchange_client, right"*) echo "Swap Window Right" ;;
+        "exchange_client, up"*) echo "Swap Window Up" ;;
+        "exchange_client, down"*) echo "Swap Window Down" ;;
+        "resizewin,"*) echo "Resize Window (${raw#resizewin, })" ;;
+        "movewin,"*) echo "Move Floating Window (${raw#movewin, })" ;;
+        "view, "*", 0"*)
+            local ws="${raw#view, }"
+            ws="${ws%%,*}"
+            echo "Switch to Workspace $ws"
+            ;;
+        "tag, "*", 0"*)
+            local ws="${raw#tag, }"
+            ws="${ws%%,*}"
+            echo "Move Window to Workspace $ws"
+            ;;
+        "spawn, volume --inc"*) echo "Increase Volume" ;;
+        "spawn, volume --dec"*) echo "Decrease Volume" ;;
+        "spawn, volume --toggle-mic"*) echo "Toggle Microphone Mute" ;;
+        "spawn, volume --toggle"*) echo "Toggle Audio Mute" ;;
+        "spawn, brightness --inc"*) echo "Increase Brightness" ;;
+        "spawn, brightness --dec"*) echo "Decrease Brightness" ;;
+        "moveresize, curmove"*) echo "Move Window (Drag)" ;;
+        "moveresize, curresize"*) echo "Resize Window (Drag)" ;;
+        *)
+            local clean="${raw#spawn, }"
+            clean="${clean#,}"
+            clean="${clean%,}"
+            echo "$clean"
+            ;;
+    esac
+}
+
+declare -a menu_entries=()
+declare -a raw_actions=()
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^[[:space:]]*(bind|mousebind)[[:space:]]*=[[:space:]]*([^,]+),[[:space:]]*([^,]+),[[:space:]]*(.*)$ ]]; then
+        mods="${BASH_REMATCH[2]}"
+        key="${BASH_REMATCH[3]}"
+        action="${BASH_REMATCH[4]}"
+
+        # Trim whitespace
+        mods="${mods#"${mods%%[![:space:]]*}"}"
+        mods="${mods%"${mods##*[![:space:]]}"}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        action="${action#"${action%%[![:space:]]*}"}"
+        action="${action%"${action##*[![:space:]]}"}"
+
+        if [[ "$mods" == "NONE" || -z "$mods" ]]; then
+            combo="$key"
+        else
+            combo="${mods//+/ + } + $key"
+        fi
+
+        desc=$(describe_action "$action")
+        printf -v entry "%-26s  │  %s" "$combo" "$desc"
+        menu_entries+=("$entry")
+        raw_actions+=("$action")
+    fi
+done < "$CONF_FILE"
+
+if [[ ${#menu_entries[@]} -eq 0 ]]; then
+    notify-send "Keymaps" "No keybindings found in $CONF_FILE"
+    exit 1
+fi
+
+set +e
+selected_idx=$(printf "%s\n" "${menu_entries[@]}" | rofi -dmenu -i -format i -no-show-icons -p "Keybindings" ${RASI:+-theme "$RASI"})
+status=$?
+set -e
+
+if [[ $status -ne 0 || -z "$selected_idx" ]]; then
+    exit 0
+fi
+
+if [[ "$selected_idx" =~ ^[0-9]+$ && "$selected_idx" -lt "${#raw_actions[@]}" ]]; then
+    act="${raw_actions[$selected_idx]}"
+    if [[ "$act" =~ ^spawn,[[:space:]]*(.*)$ ]]; then
+        cmd="${BASH_REMATCH[1]}"
+        nohup bash -c "$cmd" >/dev/null 2>&1 &
+    elif [[ -n "$act" ]] && command -v mmsg >/dev/null 2>&1; then
+        mmsg dispatch "${act%,}" >/dev/null 2>&1 || true
+    fi
+fi

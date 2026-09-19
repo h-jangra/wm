@@ -1,0 +1,17 @@
+configuration {
+    modi:                       "drun,run,window";
+    show-icons:                 true;
+    hover-select:               true;
+    display-drun:               " Apps";
+    display-run:                " Run";
+    display-window:             " Windows";
+    drun-display-format:        "{name}";
+    window-format:              "{w} · {c} · {t}";
+    terminal:                   "footclient";
+    run-shell-command:          "{terminal} -e {cmd}";
+    drun {
+        gio-launch:             false;
+    }
+}
+
+@theme "theme.rasi"

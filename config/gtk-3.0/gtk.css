@@ -1,0 +1,1278 @@
+@import url("theme.css");
+
+* {
+    font-family: "Maple Mono", "SymbolsNF", monospace;
+    -gtk-secondary-caret-color: @theme_accent;
+}
+
+window,
+.background {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+*:focus {
+    outline-color: alpha(@theme_accent, 0.5);
+    outline-offset: 1px;
+}
+
+selection,
+*:selected {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+label {
+    color: @theme_fg;
+}
+
+label.dim-label,
+label.subtitle,
+.dim-label {
+    color: alpha(@theme_fg, 0.55);
+}
+
+label.title {
+    color: @theme_fg;
+    font-weight: bold;
+}
+
+label a,
+a {
+    color: @theme_accent;
+    text-decoration: none;
+}
+
+label a:hover,
+a:hover {
+    color: @theme_accent_alt;
+    text-decoration: underline;
+}
+
+button,
+.button {
+    background-image: none;
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 5px;
+    padding: 5px 12px;
+    box-shadow: none;
+    transition: all 150ms ease;
+}
+
+button:hover,
+.button:hover {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.15);
+    border-color: @theme_accent;
+    color: @theme_accent;
+}
+
+button:active,
+button:checked,
+.button:active,
+.button:checked {
+    background-image: none;
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+button:disabled,
+.button:disabled {
+    background-image: none;
+    background-color: alpha(@theme_surface, 0.4);
+    border-color: alpha(@theme_border, 0.4);
+    color: alpha(@theme_fg, 0.35);
+}
+
+button.suggested-action,
+button.default {
+    background-image: none;
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: bold;
+}
+
+button.suggested-action:hover,
+button.default:hover {
+    background-color: alpha(@theme_accent, 0.82);
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+button.suggested-action:active,
+button.default:active {
+    background-color: @theme_accent_alt;
+    border-color: @theme_accent_alt;
+    color: @theme_selected_fg;
+}
+
+button.suggested-action:disabled,
+button.default:disabled {
+    background-color: alpha(@theme_accent, 0.35);
+    border-color: alpha(@theme_accent, 0.35);
+    color: alpha(@theme_selected_fg, 0.5);
+}
+
+button.destructive-action {
+    background-image: none;
+    background-color: @theme_destructive_bg;
+    border-color: alpha(@theme_urgent, 0.6);
+    color: @nord6;
+    font-weight: bold;
+}
+
+button.destructive-action:hover {
+    background-color: @theme_destructive_hover;
+    border-color: @theme_urgent;
+    color: @nord6;
+}
+
+button.destructive-action:active {
+    background-color: @theme_destructive_active;
+    border-color: @theme_urgent;
+    color: @nord6;
+}
+
+button.destructive-action:disabled {
+    background-color: alpha(@theme_urgent, 0.2);
+    border-color: alpha(@theme_urgent, 0.2);
+    color: alpha(@nord6, 0.4);
+}
+
+button.flat,
+.flat {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+button.flat:hover {
+    background-color: alpha(@theme_fg, 0.08);
+    border-color: transparent;
+    color: @theme_fg;
+}
+
+button.flat:active,
+button.flat:checked {
+    background-color: alpha(@theme_accent, 0.2);
+    border-color: transparent;
+    color: @theme_accent;
+}
+
+
+button.circular {
+    border-radius: 50%;
+    padding: 6px;
+}
+
+combobox,
+combobox.combo,
+combobox button,
+combobox button.combo,
+combobox > box > button.combo,
+combobox > button {
+    background-image: none;
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 5px;
+    padding: 3px 8px;
+    box-shadow: none;
+}
+
+combobox:hover,
+combobox.combo:hover,
+combobox button:hover,
+combobox button.combo:hover,
+combobox > box > button.combo:hover {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.12);
+    border-color: @theme_accent;
+    color: @theme_fg;
+}
+
+combobox:focus,
+combobox.combo:focus,
+combobox button:focus,
+combobox button.combo:focus,
+combobox:checked,
+combobox button:checked {
+    border-color: @theme_accent;
+}
+
+combobox:disabled,
+combobox button:disabled,
+combobox button.combo:disabled {
+    background-image: none;
+    background-color: alpha(@theme_surface, 0.5);
+    border-color: alpha(@theme_border, 0.5);
+    color: alpha(@theme_fg, 0.4);
+}
+
+combobox cellview {
+    background: transparent;
+    color: @theme_fg;
+}
+
+combobox arrow,
+combobox button arrow,
+combobox.combo arrow,
+combobox > box > button.combo arrow {
+    color: @theme_accent;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+combobox menu,
+combobox popover,
+combobox window.popup menu {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+combobox menu menuitem,
+combobox popover modelbutton {
+    color: @theme_fg;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+combobox menu menuitem:hover,
+combobox popover modelbutton:hover,
+combobox menu menuitem:selected {
+    background-image: none;
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+entry,
+spinbutton {
+    background-image: none;
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 5px;
+    padding: 5px 10px;
+    box-shadow: none;
+    caret-color: @theme_accent;
+    transition: border-color 150ms ease;
+}
+
+entry:focus,
+spinbutton:focus {
+    border-color: @theme_accent;
+    box-shadow: 0 0 0 2px alpha(@theme_accent, 0.2);
+    outline: none;
+}
+
+entry:disabled,
+spinbutton:disabled {
+    background-color: alpha(@theme_surface, 0.5);
+    border-color: alpha(@theme_border, 0.5);
+    color: alpha(@theme_fg, 0.4);
+}
+
+entry.warning {
+    border-color: @theme_warning;
+    color: @theme_fg;
+}
+
+entry.error {
+    border-color: @theme_urgent;
+    color: @theme_fg;
+}
+
+spinbutton button {
+    background-image: none;
+    background-color: transparent;
+    border: none;
+    color: alpha(@theme_fg, 0.7);
+    border-radius: 0;
+}
+
+spinbutton button:hover {
+    background-color: alpha(@theme_accent, 0.2);
+    color: @theme_accent;
+}
+
+treeview,
+treeview.view,
+.view,
+iconview,
+textview,
+textview text,
+scrolledwindow,
+scrolledwindow viewport,
+scrolledwindow viewport.frame,
+list,
+row {
+    background-image: none;
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+treeview:selected,
+treeview.view:selected,
+treeview.view row:selected,
+.view:selected,
+iconview:selected,
+list row:selected {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+treeview:hover,
+treeview.view row:hover,
+.view row:hover,
+iconview:hover,
+list row:hover {
+    background-color: alpha(@theme_surface, 0.6);
+}
+
+treeview header button {
+    background-image: none;
+    background-color: @theme_sidebar;
+    color: alpha(@theme_fg, 0.65);
+    border: none;
+    border-bottom: 1px solid @theme_border_dim;
+    border-right: 1px solid alpha(@theme_border, 0.4);
+    padding: 4px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+treeview header button:hover {
+    background-color: alpha(@theme_surface, 0.8);
+    color: @theme_fg;
+}
+
+headerbar,
+.titlebar,
+toolbar,
+.primary-toolbar,
+toolbar#location-toolbar {
+    background-image: none;
+    background-color: @theme_sidebar;
+    color: @theme_fg;
+    border-bottom: 1px solid @theme_border_dim;
+    padding: 4px 8px;
+    box-shadow: inset 0 -1px alpha(@nord0, 0.35);
+    min-height: 38px;
+}
+
+headerbar:backdrop,
+.titlebar:backdrop {
+    background-color: @theme_bg;
+    border-color: @theme_border_dim;
+    box-shadow: none;
+    color: alpha(@theme_fg, 0.6);
+}
+
+headerbar .title,
+.titlebar .title {
+    font-weight: bold;
+    font-size: 13px;
+    color: @theme_fg;
+}
+
+headerbar .subtitle,
+.titlebar .subtitle {
+    font-size: 11px;
+    color: alpha(@theme_fg, 0.6);
+}
+
+button.titlebutton {
+    background-image: none;
+    background-color: transparent;
+    border: none;
+    border-radius: 50%;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    margin: 0 2px;
+    box-shadow: none;
+    color: alpha(@theme_fg, 0.7);
+    -gtk-icon-size: 12px;
+}
+
+button.titlebutton:hover {
+    background-color: alpha(@theme_fg, 0.1);
+    color: @theme_fg;
+}
+
+button.titlebutton:active {
+    background-color: alpha(@theme_fg, 0.2);
+}
+
+button.titlebutton:backdrop {
+    color: alpha(@theme_fg, 0.3);
+    background-color: transparent;
+}
+
+
+button.titlebutton.close {
+    color: alpha(@theme_fg, 0.6);
+    -gtk-icon-source: -gtk-icontheme("window-close-symbolic");
+}
+
+button.titlebutton.close:hover {
+    background-color: alpha(@theme_urgent, 0.25);
+    color: @theme_urgent;
+}
+
+button.titlebutton.close:active {
+    background-color: alpha(@theme_urgent, 0.45);
+    color: @theme_urgent;
+}
+
+
+button.titlebutton.maximize {
+    color: alpha(@theme_fg, 0.6);
+    -gtk-icon-source: -gtk-icontheme("window-maximize-symbolic");
+}
+
+button.titlebutton.maximize:hover {
+    background-color: alpha(@theme_success, 0.25);
+    color: @theme_success;
+}
+
+button.titlebutton.maximize:active {
+    background-color: alpha(@theme_success, 0.45);
+    color: @theme_success;
+}
+
+
+button.titlebutton.minimize {
+    color: alpha(@theme_fg, 0.6);
+    -gtk-icon-source: -gtk-icontheme("window-minimize-symbolic");
+}
+
+button.titlebutton.minimize:hover {
+    background-color: alpha(@theme_yellow, 0.25);
+    color: @theme_yellow;
+}
+
+button.titlebutton.minimize:active {
+    background-color: alpha(@theme_yellow, 0.45);
+    color: @theme_yellow;
+}
+
+button.titlebutton.restore {
+    -gtk-icon-source: -gtk-icontheme("window-restore-symbolic");
+}
+
+button.titlebutton.restore:hover {
+    background-color: alpha(@theme_success, 0.25);
+    color: @theme_success;
+}
+
+toolbar button,
+headerbar button:not(.titlebutton) {
+    background-image: none;
+    background-color: transparent;
+    color: @theme_fg;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 4px 8px;
+    margin: 0 1px;
+    min-width: 26px;
+    min-height: 26px;
+    box-shadow: none;
+    transition: all 150ms ease;
+}
+
+toolbar button:hover,
+headerbar button:not(.titlebutton):hover {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.15);
+    border-color: alpha(@theme_accent, 0.3);
+    color: @theme_accent;
+}
+
+toolbar button:active,
+toolbar button:checked,
+headerbar button:not(.titlebutton):active,
+headerbar button:not(.titlebutton):checked {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.25);
+    border-color: @theme_accent;
+    color: @theme_accent;
+}
+
+toolbar button:disabled,
+headerbar button:disabled {
+    background-color: transparent;
+    border-color: transparent;
+    color: alpha(@theme_fg, 0.28);
+}
+
+toolbar separator,
+headerbar separator {
+    background-color: @theme_border;
+    min-width: 1px;
+    min-height: 1px;
+    margin: 4px 6px;
+}
+
+headerbar.selection-mode,
+.titlebar.selection-mode {
+    background-image: none;
+    background-color: @theme_destructive_hover;
+    color: @nord6;
+    border-color: alpha(@theme_urgent, 0.6);
+    box-shadow: inset 0 -1px alpha(@theme_urgent, 0.4);
+}
+
+headerbar.selection-mode:backdrop,
+.titlebar.selection-mode:backdrop {
+    background-color: @theme_destructive_bg;
+    color: alpha(@nord6, 0.6);
+}
+
+headerbar.selection-mode .title,
+.titlebar.selection-mode .title {
+    color: @nord6;
+    font-weight: bold;
+}
+
+headerbar.selection-mode button,
+.titlebar.selection-mode button {
+    background-color: alpha(@nord6, 0.12);
+    border-color: alpha(@nord6, 0.3);
+    color: @nord6;
+}
+
+headerbar.selection-mode button:hover,
+.titlebar.selection-mode button:hover {
+    background-color: alpha(@nord6, 0.2);
+    border-color: alpha(@nord6, 0.5);
+    color: @nord6;
+}
+
+headerbar.selection-mode button:active,
+headerbar.selection-mode button:checked,
+.titlebar.selection-mode button:active,
+.titlebar.selection-mode button:checked {
+    background-color: alpha(@nord6, 0.3);
+    border-color: @nord6;
+    color: @nord6;
+}
+
+headerbar.selection-mode button.titlebutton,
+.titlebar.selection-mode button.titlebutton {
+    background-color: transparent;
+    border-color: transparent;
+    color: alpha(@nord6, 0.8);
+}
+
+headerbar.selection-mode button.titlebutton:hover,
+.titlebar.selection-mode button.titlebutton:hover {
+    background-color: alpha(@nord6, 0.15);
+    color: @nord6;
+}
+
+window.thunar {
+    background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+window.thunar .path-bar,
+window.thunar pathbar,
+window.thunar toolbar#location-toolbar,
+toolbar#location-toolbar {
+    background-image: none;
+    background-color: @theme_sidebar;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 2px 4px;
+}
+
+window.thunar .path-bar button:disabled,
+window.thunar .location-button:disabled {
+    opacity: 0;
+}
+
+window.thunar .path-bar button,
+window.thunar .path-bar togglebutton,
+window.thunar .location-button,
+window.thunar togglebutton.location-button {
+    background-image: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: alpha(@theme_fg, 0.75);
+    padding: 3px 8px;
+    margin: 1px 2px;
+    box-shadow: none;
+    font-weight: normal;
+}
+
+window.thunar .path-bar button:hover,
+window.thunar .path-bar togglebutton:hover,
+window.thunar .location-button:hover,
+window.thunar togglebutton.location-button:hover {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.15);
+    border-color: alpha(@theme_accent, 0.3);
+    color: @theme_accent;
+}
+
+window.thunar .path-bar button:checked,
+window.thunar .path-bar togglebutton:checked,
+window.thunar .location-button:checked,
+window.thunar togglebutton.location-button:checked {
+    background-image: none;
+    background-color: @theme_accent;
+    border: 1px solid @theme_accent;
+    color: @theme_selected_fg;
+    font-weight: bold;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+window.thunar .path-bar button:checked:hover,
+window.thunar .path-bar togglebutton:checked:hover,
+window.thunar .location-button:checked:hover,
+window.thunar togglebutton.location-button:checked:hover {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.85);
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+
+window.thunar toolbar#location-toolbar entry {
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 5px;
+    padding: 4px 8px;
+}
+
+window.thunar toolbar#location-toolbar entry:focus {
+    border-color: @theme_accent;
+    box-shadow: 0 0 0 2px alpha(@theme_accent, 0.2);
+}
+
+window.thunar .sidebar,
+window.thunar scrolledwindow.sidebar,
+window.thunar scrolledwindow.sidebar treeview.view,
+window.thunar .sidebar list {
+    background-image: none;
+    background-color: @theme_sidebar;
+    color: @theme_fg;
+    border: none;
+}
+
+window.thunar .sidebar row,
+window.thunar .sidebar treeview.view row {
+    padding: 5px 8px;
+    margin: 2px 4px;
+    border-radius: 5px;
+    transition: background-color 100ms ease;
+}
+
+window.thunar .sidebar row:hover,
+window.thunar .sidebar treeview.view row:hover {
+    background-color: alpha(@theme_fg, 0.07);
+}
+
+window.thunar .sidebar row:selected,
+window.thunar .sidebar treeview.view:selected,
+window.thunar .sidebar treeview.view row:selected {
+    background-color: alpha(@theme_accent, 0.2);
+    color: @theme_accent;
+    font-weight: bold;
+}
+
+window.thunar .sidebar label.heading,
+window.thunar .sidebar .heading {
+    color: alpha(@theme_fg, 0.45);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 10px 8px 4px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+paned > separator {
+    background-color: @theme_border_dim;
+    min-width: 1px;
+    min-height: 1px;
+}
+
+.split-view-inactive-pane .view {
+    background-color: alpha(@theme_bg, 0.78);
+}
+
+rubberband,
+.rubberband {
+    background-color: alpha(@theme_accent, 0.2);
+    border: 1px solid @theme_accent;
+    border-radius: 3px;
+}
+
+searchbar,
+.search-bar {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border_dim;
+    padding: 4px 8px;
+}
+
+notebook {
+    background-color: @theme_bg;
+}
+
+notebook > header {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border_dim;
+    padding: 2px 4px 0 4px;
+}
+
+notebook > header tab {
+    background-image: none;
+    background-color: transparent;
+    color: alpha(@theme_fg, 0.55);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 6px 14px;
+    margin: 0 2px;
+    transition: all 150ms ease;
+}
+
+notebook > header tab:hover:not(:checked) {
+    background-color: alpha(@theme_fg, 0.07);
+    color: @theme_fg;
+}
+
+notebook > header tab:checked {
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_border_dim;
+    border-top: 2px solid @theme_accent;
+    border-bottom: 1px solid @theme_bg;
+}
+
+notebook > header tab button {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    min-width: 16px;
+    min-height: 16px;
+    padding: 2px;
+    margin-left: 4px;
+    color: alpha(@theme_fg, 0.5);
+    -gtk-icon-source: -gtk-icontheme("window-close-symbolic");
+    -gtk-icon-size: 10px;
+}
+
+notebook > header tab button:hover {
+    background-color: alpha(@theme_urgent, 0.2);
+    color: @theme_urgent;
+}
+
+notebook > header tab button:active {
+    background-color: alpha(@theme_urgent, 0.35);
+    color: @theme_urgent;
+}
+
+statusbar,
+.statusbar {
+    background-color: @theme_sidebar;
+    color: alpha(@theme_fg, 0.65);
+    border-top: 1px solid @theme_border_dim;
+    padding: 3px 10px;
+    font-size: 11px;
+}
+
+menu,
+.menu,
+popover,
+popover.background {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+menu menuitem,
+.menu menuitem {
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin: 1px 3px;
+    color: @theme_fg;
+    transition: background-color 100ms ease;
+}
+
+menu menuitem:hover,
+.menu menuitem:hover {
+    background-image: none;
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+menu menuitem:disabled,
+.menu menuitem:disabled {
+    color: alpha(@theme_fg, 0.3);
+}
+
+menu separator,
+.menu separator {
+    min-height: 1px;
+    background-color: @theme_border_dim;
+    margin: 3px 6px;
+}
+
+menu menuitem image,
+.menu menuitem image {
+    color: alpha(@theme_fg, 0.75);
+    margin-right: 6px;
+}
+
+menu menuitem:hover image,
+.menu menuitem:hover image {
+    color: @theme_selected_fg;
+}
+
+menu menuitem arrow {
+    color: alpha(@theme_fg, 0.5);
+    min-width: 12px;
+}
+
+menu menuitem:hover arrow {
+    color: @theme_selected_fg;
+}
+
+scrollbar {
+    background-color: transparent;
+    transition: opacity 300ms ease;
+}
+
+scrollbar slider {
+    background-color: alpha(@theme_fg, 0.18);
+    border-radius: 10px;
+    border: none;
+    margin: 2px;
+    transition: background-color 150ms ease;
+}
+
+scrollbar.horizontal slider {
+    min-width: 24px;
+    min-height: 6px;
+}
+
+scrollbar.vertical slider {
+    min-width: 6px;
+    min-height: 24px;
+}
+
+scrollbar slider:hover {
+    background-color: alpha(@theme_fg, 0.35);
+}
+
+scrollbar slider:active {
+    background-color: @theme_accent;
+}
+
+scrollbar button {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+}
+
+dialog,
+messagedialog {
+    background-color: @theme_sidebar;
+    color: @theme_fg;
+    border-radius: 8px;
+}
+
+dialog .dialog-vbox,
+messagedialog .dialog-vbox {
+    background-color: @theme_sidebar;
+    color: @theme_fg;
+}
+
+dialog .dialog-action-area,
+dialog .action-area,
+messagedialog .dialog-action-area,
+actionbar,
+actionbar > revealer > box {
+    background-color: @theme_bg;
+    border-top: 1px solid @theme_border_dim;
+    padding: 8px 12px;
+}
+
+messagedialog.csd .dialog-action-area button {
+    padding: 10px 16px;
+    border-radius: 0;
+    border-left: 1px solid @theme_border_dim;
+    border-right-style: none;
+    border-bottom-style: none;
+    border-top-style: none;
+    background-color: transparent;
+    color: @theme_fg;
+    box-shadow: none;
+    transition: background-color 150ms ease;
+}
+
+messagedialog.csd .dialog-action-area button:first-child {
+    border-left-style: none;
+    border-bottom-left-radius: 6px;
+}
+
+messagedialog.csd .dialog-action-area button:last-child {
+    border-bottom-right-radius: 6px;
+}
+
+messagedialog.csd .dialog-action-area button:hover {
+    background-color: alpha(@theme_surface, 0.8);
+    color: @theme_fg;
+}
+
+messagedialog.csd .dialog-action-area button.destructive-action {
+    color: @theme_urgent;
+    font-weight: bold;
+}
+
+messagedialog.csd .dialog-action-area button.destructive-action:hover {
+    background-color: alpha(@theme_urgent, 0.15);
+    color: @theme_urgent;
+}
+
+messagedialog.csd .dialog-action-area button.suggested-action {
+    color: @theme_accent;
+    font-weight: bold;
+}
+
+messagedialog.csd .dialog-action-area button.suggested-action:hover {
+    background-color: alpha(@theme_accent, 0.15);
+    color: @theme_accent;
+}
+
+messagedialog .titlebar,
+messagedialog headerbar {
+    background-color: @theme_sidebar;
+    color: @theme_fg;
+    border-radius: 8px 8px 0 0;
+    min-height: 24px;
+}
+
+infobar {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border-bottom: 1px solid @theme_border_dim;
+    padding: 4px 8px;
+}
+
+infobar.info,
+.info {
+    background-color: alpha(@theme_info, 0.2);
+    color: @theme_fg;
+    border-color: alpha(@theme_info, 0.4);
+}
+
+infobar.warning,
+.warning {
+    background-color: alpha(@theme_warning, 0.2);
+    color: @theme_fg;
+    border-color: alpha(@theme_warning, 0.4);
+}
+
+infobar.question,
+.question {
+    background-color: alpha(@theme_question, 0.2);
+    color: @theme_fg;
+    border-color: alpha(@theme_question, 0.4);
+}
+
+infobar.error,
+.error {
+    background-color: alpha(@theme_urgent, 0.2);
+    color: @theme_fg;
+    border-color: alpha(@theme_urgent, 0.4);
+}
+
+checkbutton check,
+radiobutton radio {
+    background-image: none;
+    background-color: @theme_bg;
+    border: 1px solid @theme_border;
+    border-radius: 4px;
+    min-width: 16px;
+    min-height: 16px;
+    transition: all 150ms ease;
+}
+
+radiobutton radio {
+    border-radius: 50%;
+}
+
+checkbutton check:hover,
+radiobutton radio:hover {
+    border-color: @theme_accent;
+    background-color: alpha(@theme_accent, 0.1);
+}
+
+checkbutton check:checked,
+radiobutton radio:checked {
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
+    -gtk-icon-source: -gtk-icontheme("object-select-symbolic");
+}
+
+checkbutton check:disabled,
+radiobutton radio:disabled {
+    background-color: alpha(@theme_surface, 0.5);
+    border-color: alpha(@theme_border, 0.5);
+}
+
+checkbutton label,
+radiobutton label {
+    color: @theme_fg;
+    margin-left: 4px;
+}
+
+switch {
+    background-image: none;
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 14px;
+    min-width: 48px;
+    min-height: 22px;
+    transition: all 200ms ease;
+}
+
+switch:hover {
+    border-color: @theme_accent;
+}
+
+switch:checked {
+    background-image: none;
+    background-color: alpha(@theme_accent, 0.35);
+    border-color: @theme_accent;
+}
+
+switch slider {
+    background-color: alpha(@theme_fg, 0.55);
+    border-radius: 50%;
+    margin: 2px;
+    min-width: 16px;
+    min-height: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: all 200ms ease;
+}
+
+switch:checked slider {
+    background-color: @theme_accent;
+}
+
+scale trough {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    min-height: 6px;
+}
+
+scale highlight {
+    background-color: @theme_accent;
+    border-radius: 6px;
+}
+
+scale slider {
+    background-color: @theme_fg;
+    border-radius: 50%;
+    min-width: 16px;
+    min-height: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 100ms ease;
+}
+
+scale slider:hover {
+    background-color: @theme_accent;
+    transform: scale(1.15);
+}
+
+scale slider:active {
+    background-color: @theme_accent;
+}
+
+scale marks indicator {
+    background-color: alpha(@theme_fg, 0.3);
+    min-width: 1px;
+    min-height: 6px;
+}
+
+progressbar trough {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    min-height: 8px;
+}
+
+progressbar progress {
+    background-color: @theme_accent;
+    border-radius: 5px;
+    min-height: 8px;
+    background-image: linear-gradient(
+        to right,
+        alpha(@theme_accent, 0.8),
+        @theme_accent
+    );
+}
+
+levelbar trough {
+    background-color: @theme_surface;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    min-height: 6px;
+}
+
+levelbar block.filled {
+    background-color: @theme_accent;
+    border-radius: 4px;
+}
+
+levelbar block.high {
+    background-color: @theme_success;
+}
+
+levelbar block.low {
+    background-color: @theme_warning;
+}
+
+levelbar block.empty {
+    background-color: alpha(@theme_surface, 0.5);
+}
+
+frame,
+.frame {
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+}
+
+frame > border {
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+}
+
+tooltip {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+    padding: 5px 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+tooltip label {
+    color: @theme_fg;
+}
+
+calendar {
+    background-color: @theme_bg;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 6px;
+}
+
+calendar:selected {
+    background-color: @theme_accent;
+    color: @theme_selected_fg;
+    border-radius: 50%;
+}
+
+calendar.header {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border_dim;
+    padding: 4px;
+}
+
+calendar.header button {
+    background-color: transparent;
+    border: none;
+    color: @theme_fg;
+}
+
+calendar.header button:hover {
+    background-color: alpha(@theme_accent, 0.15);
+    color: @theme_accent;
+    border-radius: 4px;
+}
+
+expander arrow {
+    color: alpha(@theme_fg, 0.6);
+    min-width: 14px;
+    min-height: 14px;
+    transition: transform 200ms ease;
+}
+
+expander arrow:checked {
+    color: @theme_accent;
+}
+
+image {
+    padding: 0;
+    margin: 0;
+}
+
+.osd {
+    background-color: alpha(@theme_surface, 0.92);
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.osd label {
+    color: @theme_fg;
+}
+
+
+.notification {
+    background-color: @theme_surface;
+    color: @theme_fg;
+    border: 1px solid @theme_border;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+filechooser .dialog-action-box {
+    background-color: @theme_sidebar;
+    border-top: 1px solid @theme_border_dim;
+    padding: 6px 12px;
+}
+
+filechooser #pathbarbox {
+    background-color: @theme_sidebar;
+    border-bottom: 1px solid @theme_border_dim;
+}
+
+spinner {
+    color: @theme_accent;
+}
+
+window:backdrop,
+.background:backdrop {
+    background-color: @theme_bg;
+    color: alpha(@theme_fg, 0.65);
+}
+
+headerbar:backdrop button:not(.titlebutton) {
+    color: alpha(@theme_fg, 0.5);
+}

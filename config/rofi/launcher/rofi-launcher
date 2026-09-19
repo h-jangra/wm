@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-launcher: Wayland application launcher
+# Self-contained within config/rofi/launcher/
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+RASI="${SCRIPT_DIR}/launcher.rasi"
+
+if [[ -f "$RASI" ]]; then
+    exec rofi -modes "drun,run" -show drun -theme "$RASI" "$@"
+elif [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/rofi/launcher/launcher.rasi" ]]; then
+    exec rofi -modes "drun,run" -show drun -theme "${XDG_CONFIG_HOME:-$HOME/.config}/rofi/launcher/launcher.rasi" "$@"
+else
+    exec rofi -modes "drun,run" -show drun "$@"
+fi

@@ -1,43 +1,42 @@
 # ==============================================================================
-# Void Linux Package List for Custom MangoWC Rice
-# Install via: sudo xbps-install -Sy $(grep -vE '^\s*#|^\s*$' packages.void)
+# Debian / Ubuntu Package List for Custom MangoWC Rice
+# Install via: sudo apt install $(grep -vE '^\s*#|^\s*$' packages.debian)
 # ==============================================================================
 
 # Core Wayland Compositor & Desktop Shell
 mangowc
 foot
-rofi
+rofi-wayland
 swaybg
 swaylock
 hyprpicker
-mako
-libnotify
-Thunar
+mako-notifier
+libnotify-bin
+thunar
 thunar-archive-plugin
 thunar-volman
 papirus-icon-theme
 tumbler
 
-# Status Bar & Widgets (MangoBar built from source or package, Eww optional)
+# Status Bar & Widgets (MangoBar built from source, Eww optional)
 mangobar
-# eww
 
 # Audio Subsystem (PipeWire + WirePlumber)
 pipewire
 wireplumber
-alsa-pipewire
-libspa-bluetooth
+pipewire-alsa
+pipewire-pulse
+libspa-0.2-bluetooth
 
 # Networking & Bluetooth
-NetworkManager
+network-manager
 bluez
 
 # Hardware, Seat & Authentication
 dbus
 brightnessctl
-elogind
-polkit
-polkit-gnome
+polkitd
+policykit-1-gnome
 
 # Screen Capture & Clipboard Management
 grim
@@ -51,27 +50,30 @@ tesseract-ocr-eng
 btop
 jq
 fzf
-fd
+fd-find
 ripgrep
-xmirror
-github-cli
+gh
 v4l-utils
 
 # Build Tools (for source builds: MangoBar, Ly)
+build-essential
 meson
-ninja
+ninja-build
 pkg-config
-wayland-devel
+libwayland-dev
 wayland-protocols
-fcft-devel
-pixman-devel
-cairo-devel
-pango-devel
-pulseaudio-devel
-eudev-libudev-devel
-gdk-pixbuf-devel
-cJSON-devel
-basu-devel
+libfcft-dev
+libpixman-1-dev
+libcairo2-dev
+libpango1.0-dev
+libpulse-dev
+libudev-dev
+libgdk-pixbuf-2.0-dev
+libcjson-dev
+libbasu-dev
+libpam0g-dev
+libxcb1-dev
+libxcb-xkb-dev
 
 # Core CLI Utilities
 unzip
@@ -84,6 +86,5 @@ tree
 less
 pciutils
 usbutils
-procps-ng
+procps
 util-linux
-lsof

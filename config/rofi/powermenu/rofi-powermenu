@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+THEME="$SCRIPT_DIR/power.rasi"
+[[ -f "$THEME" ]] || THEME="$CONF_DIR/powermenu/power.rasi"
+
+readonly LOCK=""
+readonly SUSPEND=""
+readonly LOGOUT=""
+readonly HIBERNATE=""
+readonly REBOOT=""
+readonly SHUTDOWN=""
+readonly YES=""
+readonly NO=""
+
+uptime_text() {
+    uptime -p | sed 's/up //'
+}
+
+rofi_cmd() {
+    rofi -dmenu \
+        -p " $USER@$(hostname)" \
+        -mesg "Uptime: $(uptime_text)" \
+        -theme "$THEME"
+}
+
+confirm_cmd() {
+    local action="$1"
+
+    rofi -dmenu \
+        -p "Confirmation" \
+        -mesg "$action" \
+        -theme "$THEME" \
+        -theme-str '
+            window { width: 350px; }
+            mainbox { children: [ "message", "listview" ]; }
+            listview { columns: 2; lines: 1; }
+            element-text { horizontal-align: 0.5; }
+            textbox { horizontal-align: 0.5; }
+        '
+}
+
+confirm() {
+    [[ "$(printf '%s\n' "$YES" "$NO" | confirm_cmd "$1")" == "$YES" ]]
+}
+
+execute() {
+    case "$1" in
+        lock)
+            swaylock
+            ;;
+        suspend)
+            loginctl lock-session 2>/dev/null || true
+            loginctl suspend 2>/dev/null || systemctl suspend 2>/dev/null || sudo zzz 2>/dev/null || true
+            ;;
+        hibernate)
+            loginctl lock-session 2>/dev/null || true
+            loginctl hibernate 2>/dev/null || systemctl hibernate 2>/dev/null || sudo ZZZ 2>/dev/null || true
+            ;;
+        logout)
+            mmsg dispatch quit
+            ;;
+        reboot)
+            confirm "Reboot" && { sudo reboot 2>/dev/null || loginctl reboot 2>/dev/null || reboot; }
+            ;;
+        shutdown)
+            confirm "Shutdown" && { sudo poweroff 2>/dev/null || loginctl poweroff 2>/dev/null || poweroff; }
+            ;;
+    esac
+}
+
+chosen="$(
+    printf '%s\n' \
+        "$LOCK" \
+        "$SUSPEND" \
+        "$LOGOUT" \
+        "$HIBERNATE" \
+        "$REBOOT" \
+        "$SHUTDOWN" |
+        rofi_cmd
+)"
+
+case "$chosen" in
+    "$LOCK") execute lock ;;
+    "$SUSPEND") execute suspend ;;
+    "$LOGOUT") execute logout ;;
+    "$HIBERNATE") execute hibernate ;;
+    "$REBOOT") execute reboot ;;
+    "$SHUTDOWN") execute shutdown ;;
+esac
+

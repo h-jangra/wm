@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# rofi-battery: Interactive Rofi power profile and battery management menu
+# ==============================================================================
+set -uo pipefail
+
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rofi"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+ROFI_DIR="$REPO_DIR/config/rofi"
+
+RASI=""
+for file in "$ROFI_DIR/powermenu/power-profile.rasi" "$CONF_DIR/powermenu/power-profile.rasi" "$CONF_DIR/power-profile.rasi" "$SCRIPT_DIR/power-profile.rasi"; do
+    if [[ -f "$file" ]]; then
+        RASI="$file"
+        break
+    fi
+done
+
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/wm-power-profile"
+
+# Get battery percentage & state
+get_battery_info() {
+    local cap="100"
+    local status="Full"
+    for b in /sys/class/power_supply/BAT*; do
+        if [[ -d "$b" ]]; then
+            [[ -f "$b/capacity" ]] && cap=$(cat "$b/capacity")
+            [[ -f "$b/status" ]] && status=$(cat "$b/status")
+            break
+        fi
+    done
+    echo "${cap}% [${status}]"
+}
+
+bat_info=$(get_battery_info)
+
+ROFI_ARGS=(-dmenu -i -p "Battery: ${bat_info}")
+[[ -n "$RASI" ]] && ROFI_ARGS+=(-theme "$RASI")
+
+notify() {
+    notify-send -h string:x-canonical-private-synchronous:wm-power \
+        "Power Profile" "$1"
+}
+
+get_current_profile() {
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+        case "$(powerprofilesctl get 2>/dev/null)" in
+            power-saver|powersave) echo "powersave" ;;
+            performance) echo "performance" ;;
+            balanced) echo "balanced" ;;
+            *) echo "balanced" ;;
+        esac
+    elif [[ -r /sys/firmware/acpi/platform_profile ]]; then
+        local raw
+        raw="$(cat /sys/firmware/acpi/platform_profile 2>/dev/null || echo "balanced")"
+        case "$raw" in
+            low-power|quiet|cool|powersave) echo "powersave" ;;
+            performance) echo "performance" ;;
+            balanced) echo "balanced" ;;
+            *) echo "balanced" ;;
+        esac
+    else
+        cat "$CACHE_FILE" 2>/dev/null || echo "balanced"
+    fi
+}
+
+current=$(get_current_profile)
+
+power_save="󰌪  Power Save"
+balanced="󰾆  Balanced"
+performance="󰓅  Performance"
+
+case "$current" in
+    powersave) power_save+="  ✓" ;;
+    performance) performance+="  ✓" ;;
+    *) balanced+="  ✓" ;;
+esac
+
+options="$power_save"$'\n'"$balanced"$'\n'"$performance"
+
+chosen=$(printf '%s\n' "$options" | rofi "${ROFI_ARGS[@]}")
+
+[[ -z "$chosen" ]] && exit 0
+
+case "$chosen" in
+    *"Power Save"*) target="powersave"; label="Power Save" ;;
+    *"Balanced"*)   target="balanced";  label="Balanced" ;;
+    *"Performance"*) target="performance"; label="Performance" ;;
+    *) exit 0 ;;
+esac
+
+# Function to write to platform_profile safely using choices
+set_platform_profile() {
+    local desired="$1"
+    local sysfs="/sys/firmware/acpi/platform_profile"
+    local choices_file="/sys/firmware/acpi/platform_profile_choices"
+    local actual=""
+
+    if [[ ! -f "$sysfs" ]]; then
+        return 1
+    fi
+
+    local available=""
+    [[ -r "$choices_file" ]] && available="$(cat "$choices_file")"
+
+    if [[ "$desired" == "powersave" ]]; then
+        if [[ "$available" =~ "quiet" ]]; then
+            actual="quiet"
+        elif [[ "$available" =~ "low-power" ]]; then
+            actual="low-power"
+        elif [[ "$available" =~ "cool" ]]; then
+            actual="cool"
+        elif [[ "$available" =~ "powersave" ]]; then
+            actual="powersave"
+        else
+            actual="quiet"
+        fi
+    elif [[ "$desired" == "performance" ]]; then
+        actual="performance"
+    else
+        actual="balanced"
+    fi
+
+    if [[ -w "$sysfs" ]]; then
+        printf '%s' "$actual" > "$sysfs"
+        return 0
+    fi
+
+    if command -v pkexec >/dev/null 2>&1; then
+        pkexec sh -c 'printf "%s" "$1" > /sys/firmware/acpi/platform_profile' sh "$actual"
+        return $?
+    fi
+
+    return 1
+}
+
+# Apply via powerprofilesctl if present, otherwise direct platform_profile / pkexec
+success=0
+if command -v powerprofilesctl >/dev/null 2>&1; then
+    pp_target="$target"
+    [[ "$pp_target" == "powersave" ]] && pp_target="power-saver"
+    if powerprofilesctl set "$pp_target" 2>/dev/null; then
+        success=1
+    fi
+fi
+
+if [[ $success -eq 0 ]]; then
+    if set_platform_profile "$target"; then
+        success=1
+    fi
+fi
+
+# Set CPU energy performance preference if available
+set_epp() {
+    local epp="$1"
+    for cpu_epp in /sys/devices/system/cpu/cpu*/power/energy_performance_preference; do
+        if [[ -w "$cpu_epp" ]]; then
+            printf '%s' "$epp" > "$cpu_epp" 2>/dev/null || true
+        fi
+    done
+}
+
+case "$target" in
+    powersave)   set_epp "power" 2>/dev/null || true ;;
+    performance) set_epp "performance" 2>/dev/null || true ;;
+    balanced)    set_epp "balance_performance" 2>/dev/null || true ;;
+esac
+
+mkdir -p "$(dirname "$CACHE_FILE")"
+printf '%s\n' "$target" > "$CACHE_FILE"
+
+if [[ $success -eq 1 ]]; then
+    notify "Mode activated: $label ($bat_info)"
+else
+    notify "Mode set: $label ($bat_info)"
+fi
