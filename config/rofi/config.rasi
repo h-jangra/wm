@@ -1,6 +1,7 @@
 configuration {
     modi:                       "drun,run,window";
     show-icons:                 true;
+    icon-theme:                 "Papirus-Custom";
     hover-select:               true;
     display-drun:               " Apps";
     display-run:                " Run";

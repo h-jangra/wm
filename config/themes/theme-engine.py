@@ -280,7 +280,7 @@ def load_bash_theme(theme_id):
         **colors,
         "wallpaper_path": wallpaper,
         "gtk_theme": variables.get("gtk_theme", "Adwaita-dark"),
-        "gtk_icons": variables.get("gtk_icons", "Papirus-Dark"),
+        "gtk_icons": variables.get("gtk_icons", "Papirus-Custom"),
     }
 
 def load_theme(theme_id):
@@ -720,6 +720,10 @@ def update_gtk_theme(theme):
 @define-color destructive_color @theme_urgent;
 @define-color destructive_bg_color @theme_urgent;
 @define-color destructive_fg_color @theme_selected_fg;
+@define-color theme_destructive_bg @theme_urgent;
+@define-color theme_destructive_hover alpha(@theme_urgent, 0.85);
+@define-color theme_destructive_active @theme_urgent;
+@define-color theme_border_dim alpha(@theme_border, 0.6);
 @define-color warning_bg_color @theme_urgent;
 @define-color warning_fg_color @theme_selected_fg;
 @define-color success_bg_color @theme_success;
@@ -731,6 +735,93 @@ def update_gtk_theme(theme):
 
     write_file(GTK_CSS, css)
 
+    # Keep GTK settings.ini icon theme synchronized
+    settings_ini_path = os.path.join(DOTFILES_DIR, "gtk-3.0", "settings.ini")
+    if os.path.isfile(settings_ini_path):
+        try:
+            with open(settings_ini_path, "r", encoding="utf-8") as f:
+                ini_content = f.read()
+            icon_theme = theme.get("gtk_icons", "Papirus-Custom")
+            gtk_theme = theme.get("gtk_theme", "Adwaita-dark")
+            ini_content = re.sub(
+                r"gtk-icon-theme-name\s*=.*",
+                f"gtk-icon-theme-name = {icon_theme}",
+                ini_content,
+            )
+            ini_content = re.sub(
+                r"gtk-theme-name\s*=.*",
+                f"gtk-theme-name = {gtk_theme}",
+                ini_content,
+            )
+            write_file(settings_ini_path, ini_content)
+        except OSError:
+            pass
+
+def update_papirus_icons(theme):
+    """
+    Recolor minimal Papirus folder SVGs and update symbolic color scheme tokens
+    to match the active theme's palette.
+    """
+    papirus_dir = os.path.join(REPO_DIR, "assets", "papirus")
+    templates_dir = os.path.join(papirus_dir, "templates", "places")
+    if not os.path.isdir(templates_dir):
+        return
+
+    accent = ensure_hex_color(value(theme, "accent", "#b4befe"))
+    bg = ensure_hex_color(value(theme, "background", "#1e1e2e"))
+    fg = ensure_hex_color(value(theme, "foreground", "#cdd6f4"))
+
+    def hex_to_rgb(h):
+        h = h.lstrip("#")
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    def rgb_to_hex(rgb):
+        return "#{:02x}{:02x}{:02x}".format(*[max(0, min(255, int(c))) for c in rgb])
+
+    r, g, b = hex_to_rgb(accent)
+    # Back flap is darker (~80% brightness)
+    back_color = rgb_to_hex((r * 0.80, g * 0.80, b * 0.80))
+    # Glyph on front flap: contrasting dark or light
+    lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+    if lum > 0.45:
+        glyph_color = rgb_to_hex((r * 0.35, g * 0.35, b * 0.35))
+    else:
+        glyph_color = rgb_to_hex((r + (255 - r) * 0.65, g + (255 - g) * 0.65, b + (255 - b) * 0.65))
+
+    replacements = {
+        "__FRONT_COLOR__": accent,
+        "__BACK_COLOR__": back_color,
+        "__GLYPH_COLOR__": glyph_color,
+        "__HIGHLIGHT_COLOR__": accent,
+        "__TEXT_COLOR__": fg,
+    }
+
+    for size_dir in glob.glob(os.path.join(templates_dir, "*")):
+        if not os.path.isdir(size_dir):
+            continue
+        size_name = os.path.basename(size_dir)
+        dest_dir = os.path.join(papirus_dir, size_name, "places")
+        os.makedirs(dest_dir, exist_ok=True)
+        for tf in glob.glob(os.path.join(size_dir, "*.svg")):
+            try:
+                with open(tf, "r", encoding="utf-8", errors="ignore") as fp:
+                    content = fp.read()
+                for k, v in replacements.items():
+                    content = content.replace(k, v)
+                with open(os.path.join(dest_dir, os.path.basename(tf)), "w", encoding="utf-8") as fp:
+                    fp.write(content)
+            except OSError:
+                pass
+
+    # Ensure icon cache is refreshed
+    for icon_dir in [
+        papirus_dir,
+        os.path.expanduser("~/.local/share/icons/Papirus-Custom"),
+        os.path.expanduser("~/.icons/Papirus-Custom"),
+    ]:
+        if os.path.isdir(icon_dir):
+            run_quiet(["gtk-update-icon-cache", "-q", "-f", "-t", icon_dir])
+
 def update_gsettings(theme):
     commands = [
         [
@@ -739,7 +830,7 @@ def update_gsettings(theme):
         ],
         [
             "gsettings", "set", "org.gnome.desktop.interface",
-            "icon-theme", theme.get("gtk_icons", "Papirus-Dark"),
+            "icon-theme", theme.get("gtk_icons", "Papirus-Custom"),
         ],
         [
             "gsettings", "set", "org.gnome.desktop.interface",
@@ -765,18 +856,18 @@ def update_gsettings(theme):
 def update_thunar_xfconf():
     settings = (
         ("last-menubar-visible", "false"),
-        ("last-statusbar-visible", "true"),
+        ("last-statusbar-visible", "false"),
         ("last-location-bar", "ThunarLocationButtons"),
         ("misc-symbolic-icons-in-toolbar", "true"),
         ("misc-single-click", "false"),
         ("shortcuts-icon-size", "THUNAR_ICON_SIZE_16"),
         (
             "last-toolbar-items",
-            "back:1,forward:1,open-parent:1,reload:1,location-bar:1,"
-            "search:1,toggle-split-view:1,view-switcher:1,menu:1,"
-            "open-home:0,new-tab:0,new-window:0,undo:0,redo:0,"
-            "zoom-out:0,zoom-in:0,zoom-reset:0,view-as-icons:0,"
-            "view-as-detailed-list:0,view-as-compact-list:0",
+            "location-bar:1,toggle-split-view:1,menu:1,back:0,forward:0,"
+            "open-parent:0,reload:0,search:0,view-switcher:0,open-home:0,"
+            "new-tab:0,new-window:0,undo:0,redo:0,zoom-out:0,zoom-in:0,"
+            "zoom-reset:0,view-as-icons:0,view-as-detailed-list:0,"
+            "view-as-compact-list:0",
         ),
     )
 
@@ -1054,7 +1145,9 @@ def apply_theme(theme_id, set_wallpaper=True):
     # Desktop configuration
     update_mango_conf(theme)
     update_gtk_theme(theme)
+    update_papirus_icons(theme)
     update_gsettings(theme)
+    update_thunar_xfconf()
     update_btop(theme)
     update_fastfetch(theme)
 

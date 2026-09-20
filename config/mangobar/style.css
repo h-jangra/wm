@@ -1,7 +1,7 @@
 @import "theme.css";
 
 * {
-    font-family: "Maple Mono NF", "MapleMono NF", monospace;
+    font-family: "JetBrainsMono Nerd Font", monospace;
     font-size: 18px;
     font-weight: bold;
     color: @fg;

@@ -118,6 +118,10 @@
 @define-color destructive_color @theme_urgent;
 @define-color destructive_bg_color @theme_urgent;
 @define-color destructive_fg_color @theme_selected_fg;
+@define-color theme_destructive_bg @theme_urgent;
+@define-color theme_destructive_hover alpha(@theme_urgent, 0.85);
+@define-color theme_destructive_active @theme_urgent;
+@define-color theme_border_dim alpha(@theme_border, 0.6);
 @define-color warning_bg_color @theme_urgent;
 @define-color warning_fg_color @theme_selected_fg;
 @define-color success_bg_color @theme_success;

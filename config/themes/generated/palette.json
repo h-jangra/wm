@@ -37,5 +37,5 @@
   "color15": "#bac2de",
   "wallpaper_path": "/home/hj/wm/config/themes/presets/catppuccin-mocha/wallpapers/mountain.jpg",
   "gtk_theme": "Adwaita-dark",
-  "gtk_icons": "Papirus-Dark"
+  "gtk_icons": "Papirus-Custom"
 }

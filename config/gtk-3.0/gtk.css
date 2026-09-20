@@ -121,26 +121,26 @@ button.destructive-action {
     background-image: none;
     background-color: @theme_destructive_bg;
     border-color: alpha(@theme_urgent, 0.6);
-    color: @nord6;
+    color: @theme_selected_fg;
     font-weight: bold;
 }
 
 button.destructive-action:hover {
     background-color: @theme_destructive_hover;
     border-color: @theme_urgent;
-    color: @nord6;
+    color: @theme_selected_fg;
 }
 
 button.destructive-action:active {
     background-color: @theme_destructive_active;
     border-color: @theme_urgent;
-    color: @nord6;
+    color: @theme_selected_fg;
 }
 
 button.destructive-action:disabled {
     background-color: alpha(@theme_urgent, 0.2);
     border-color: alpha(@theme_urgent, 0.2);
-    color: alpha(@nord6, 0.4);
+    color: alpha(@theme_fg, 0.4);
 }
 
 button.flat,
@@ -346,8 +346,6 @@ treeview header button {
     border-right: 1px solid alpha(@theme_border, 0.4);
     padding: 4px 8px;
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 treeview header button:hover {
@@ -365,7 +363,7 @@ toolbar#location-toolbar {
     color: @theme_fg;
     border-bottom: 1px solid @theme_border_dim;
     padding: 4px 8px;
-    box-shadow: inset 0 -1px alpha(@nord0, 0.35);
+    box-shadow: inset 0 -1px rgba(0, 0, 0, 0.35);
     min-height: 38px;
 }
 
@@ -401,7 +399,8 @@ button.titlebutton {
     margin: 0 2px;
     box-shadow: none;
     color: alpha(@theme_fg, 0.7);
-    -gtk-icon-size: 12px;
+    min-width: 16px;
+    min-height: 16px;
 }
 
 button.titlebutton:hover {
@@ -527,7 +526,7 @@ headerbar.selection-mode,
 .titlebar.selection-mode {
     background-image: none;
     background-color: @theme_destructive_hover;
-    color: @nord6;
+    color: @theme_selected_fg;
     border-color: alpha(@theme_urgent, 0.6);
     box-shadow: inset 0 -1px alpha(@theme_urgent, 0.4);
 }
@@ -535,49 +534,49 @@ headerbar.selection-mode,
 headerbar.selection-mode:backdrop,
 .titlebar.selection-mode:backdrop {
     background-color: @theme_destructive_bg;
-    color: alpha(@nord6, 0.6);
+    color: alpha(@theme_selected_fg, 0.6);
 }
 
 headerbar.selection-mode .title,
 .titlebar.selection-mode .title {
-    color: @nord6;
+    color: @theme_selected_fg;
     font-weight: bold;
 }
 
 headerbar.selection-mode button,
 .titlebar.selection-mode button {
-    background-color: alpha(@nord6, 0.12);
-    border-color: alpha(@nord6, 0.3);
-    color: @nord6;
+    background-color: alpha(@theme_selected_fg, 0.12);
+    border-color: alpha(@theme_selected_fg, 0.3);
+    color: @theme_selected_fg;
 }
 
 headerbar.selection-mode button:hover,
 .titlebar.selection-mode button:hover {
-    background-color: alpha(@nord6, 0.2);
-    border-color: alpha(@nord6, 0.5);
-    color: @nord6;
+    background-color: alpha(@theme_selected_fg, 0.2);
+    border-color: alpha(@theme_selected_fg, 0.5);
+    color: @theme_selected_fg;
 }
 
 headerbar.selection-mode button:active,
 headerbar.selection-mode button:checked,
 .titlebar.selection-mode button:active,
 .titlebar.selection-mode button:checked {
-    background-color: alpha(@nord6, 0.3);
-    border-color: @nord6;
-    color: @nord6;
+    background-color: @theme_accent;
+    border-color: @theme_accent;
+    color: @theme_selected_fg;
 }
 
 headerbar.selection-mode button.titlebutton,
 .titlebar.selection-mode button.titlebutton {
     background-color: transparent;
     border-color: transparent;
-    color: alpha(@nord6, 0.8);
+    color: alpha(@theme_selected_fg, 0.8);
 }
 
 headerbar.selection-mode button.titlebutton:hover,
 .titlebar.selection-mode button.titlebutton:hover {
-    background-color: alpha(@nord6, 0.15);
-    color: @nord6;
+    background-color: alpha(@theme_selected_fg, 0.15);
+    color: @theme_selected_fg;
 }
 
 window.thunar {
@@ -638,6 +637,14 @@ window.thunar togglebutton.location-button:checked {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Force selected fg text on label inside active location button */
+window.thunar .path-bar button:checked label,
+window.thunar .path-bar togglebutton:checked label,
+window.thunar .location-button:checked label,
+window.thunar togglebutton.location-button:checked label {
+    color: @theme_selected_fg;
+}
+
 window.thunar .path-bar button:checked:hover,
 window.thunar .path-bar togglebutton:checked:hover,
 window.thunar .location-button:checked:hover,
@@ -645,6 +652,13 @@ window.thunar togglebutton.location-button:checked:hover {
     background-image: none;
     background-color: alpha(@theme_accent, 0.85);
     border-color: @theme_accent;
+    color: @theme_selected_fg;
+}
+
+window.thunar .path-bar button:checked:hover label,
+window.thunar .path-bar togglebutton:checked:hover label,
+window.thunar .location-button:checked:hover label,
+window.thunar togglebutton.location-button:checked:hover label {
     color: @theme_selected_fg;
 }
 
@@ -699,8 +713,6 @@ window.thunar .sidebar .heading {
     font-size: 10px;
     font-weight: 700;
     padding: 10px 8px 4px 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
 }
 
 paned > separator {
@@ -727,8 +739,17 @@ searchbar,
     padding: 4px 8px;
 }
 
-notebook {
+notebook,
+notebook > stack,
+notebook > stack:not(:only-child),
+notebook.frame,
+notebook viewport {
     background-color: @theme_bg;
+    color: @theme_fg;
+}
+
+notebook > stack {
+    padding: 10px 14px;
 }
 
 notebook > header {
@@ -772,7 +793,6 @@ notebook > header tab button {
     margin-left: 4px;
     color: alpha(@theme_fg, 0.5);
     -gtk-icon-source: -gtk-icontheme("window-close-symbolic");
-    -gtk-icon-size: 10px;
 }
 
 notebook > header tab button:hover {
@@ -1045,7 +1065,12 @@ radiobutton radio:disabled {
 checkbutton label,
 radiobutton label {
     color: @theme_fg;
-    margin-left: 4px;
+    margin-left: 6px;
+}
+
+checkbutton:disabled label,
+radiobutton:disabled label {
+    color: alpha(@theme_fg, 0.4);
 }
 
 switch {
@@ -1105,7 +1130,6 @@ scale slider {
 
 scale slider:hover {
     background-color: @theme_accent;
-    transform: scale(1.15);
 }
 
 scale slider:active {
@@ -1162,13 +1186,23 @@ levelbar block.empty {
 
 frame,
 .frame {
-    border: 1px solid @theme_border;
-    border-radius: 6px;
+    background-color: transparent;
+    border: none;
+    margin: 4px 0;
 }
 
 frame > border {
     border: 1px solid @theme_border;
-    border-radius: 6px;
+    border-radius: 8px;
+    background-color: alpha(@theme_surface, 0.4);
+    padding: 8px 12px;
+}
+
+frame > label,
+frame label.title {
+    color: @theme_accent;
+    font-weight: bold;
+    padding: 0 4px;
 }
 
 tooltip {
@@ -1276,5 +1310,3 @@ window:backdrop,
 headerbar:backdrop button:not(.titlebutton) {
     color: alpha(@theme_fg, 0.5);
 }
-
-@import url("noctalia.css");

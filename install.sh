@@ -1070,9 +1070,19 @@ if [[ -f "$REPO_DIR/config/gtk-3.0/gtk.css" ]]; then
     msg_ok "Configured GTK 4.0 dark theme symlinks."
 fi
 
+if [[ -d "$REPO_DIR/assets/papirus" ]]; then
+    mkdir -p "$HOME/.local/share/icons" "$HOME/.icons"
+    ln -sfn "$REPO_DIR/assets/papirus" "$HOME/.local/share/icons/Papirus-Custom"
+    ln -sfn "$REPO_DIR/assets/papirus" "$HOME/.icons/Papirus-Custom"
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q -f -t "$REPO_DIR/assets/papirus" 2>/dev/null || true
+    fi
+    msg_ok "Configured Papirus-Custom icon theme symlinks."
+fi
+
 if command -v gsettings >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' 2>/dev/null || true
-    gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark' 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Custom' 2>/dev/null || true
     gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
     gsettings set org.gnome.desktop.interface font-name 'Maple Mono 10' 2>/dev/null || true
     gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' 2>/dev/null || true
