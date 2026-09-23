@@ -70,10 +70,15 @@
 #tray,
 #custom-power,
 #custom-keyviz,
-#custom-recorder {
+#custom-recorder,
+#custom-media {
     background-color: @bg;
     color: @fg;
     padding: 0 8px;
+}
+
+#custom-media {
+    color: @music_color;
 }
 
 #custom-keyviz {

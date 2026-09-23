@@ -22,6 +22,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -334,6 +335,7 @@ def generate_mangobar_css(theme):
 @define-color session_color {value(theme, 'session', value(theme, 'ws_urgent'))};
 @define-color recorder_color {value(theme, 'recorder', value(theme, 'ws_urgent'))};
 @define-color keyviz_color {value(theme, 'accent')};
+@define-color music_color {value(theme, 'music', value(theme, 'accent_alt'))};
 """
 
 def generate_rofi_shared_rasi(theme):
@@ -374,6 +376,7 @@ def generate_palette_css(theme):
         "ram_color": value(theme, "ram", "#7dcfff"),
         "keyviz_color": value(theme, "accent", "#7aa2f7"),
         "recorder_color": value(theme, "ws_urgent", "#f7768e"),
+        "music_color": value(theme, "music", value(theme, "accent_alt", "#7dcfff")),
         "ws_focused": value(theme, "ws_focused", "#7aa2f7"),
         "ws_occupied": value(theme, "ws_occupied", "#bb9af7"),
         "ws_empty": value(theme, "ws_empty", "#565f89"),
@@ -999,11 +1002,8 @@ def broadcast_term_colors(theme):
         except OSError:
             pass
 
-def reload_subsystems():
-    """Reload MangoWC, Mako, MangoBar, and Thunar-related processes."""
-    run_quiet(["makoctl", "reload"])
-    run_quiet(["mmsg", "dispatch", "reload_config"])
-
+def restart_mangobar():
+    """Cleanly and quickly restart mangobar (or start it if not running)."""
     bar_check = subprocess.run(
         ["pgrep", "-x", "mangobar"],
         capture_output=True,
@@ -1013,17 +1013,47 @@ def reload_subsystems():
 
     if bar_check.returncode == 0 and bar_check.stdout.strip():
         run_quiet(["pkill", "-x", "mangobar"])
-        time.sleep(0.2)
-
-        try:
-            subprocess.Popen(
-                ["mangobar"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
+        # Wait up to 300ms for old instance to exit cleanly
+        for _ in range(30):
+            poll = subprocess.run(
+                ["pgrep", "-x", "mangobar"],
+                capture_output=True,
+                text=True,
+                check=False,
             )
-        except OSError:
-            pass
+            if poll.returncode != 0 or not poll.stdout.strip():
+                break
+            time.sleep(0.01)
+        else:
+            run_quiet(["pkill", "-9", "-x", "mangobar"])
+            time.sleep(0.02)
+
+    mangobar_bin = shutil.which("mangobar")
+    if not mangobar_bin or not os.access(mangobar_bin, os.X_OK):
+        candidate = os.path.expanduser("~/.local/bin/mangobar")
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            mangobar_bin = candidate
+        else:
+            mangobar_bin = "mangobar"
+
+    try:
+        subprocess.Popen(
+            [mangobar_bin],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            env=os.environ.copy(),
+        )
+    except OSError:
+        pass
+
+def reload_subsystems(restart_bar=False):
+    """Reload MangoWC, Mako, MangoBar, and Thunar-related processes."""
+    run_quiet(["makoctl", "reload"])
+    run_quiet(["mmsg", "dispatch", "reload_config"])
+
+    if restart_bar:
+        restart_mangobar()
 
     run_quiet(["thunar", "-q"])
     alacritty_check = subprocess.run(
@@ -1141,9 +1171,20 @@ def apply_theme(theme_id, set_wallpaper=True):
         os.path.join(GENERATED_DIR, "mangobar.css"),
         mangobar_css,
     )
+    user_mangobar_theme = os.path.expanduser("~/.config/mangobar/theme.css")
+    if os.path.exists(os.path.dirname(user_mangobar_theme)) and not os.path.islink(user_mangobar_theme):
+        try:
+            write_file(user_mangobar_theme, mangobar_css)
+        except OSError:
+            pass
+
+    # MangoWM config and immediate primary UI reload (MangoWM, Mako, MangoBar)
+    update_mango_conf(theme)
+    run_quiet(["mmsg", "dispatch", "reload_config"])
+    run_quiet(["makoctl", "reload"])
+    restart_mangobar()
 
     # Desktop configuration
-    update_mango_conf(theme)
     update_gtk_theme(theme)
     update_papirus_icons(theme)
     update_gsettings(theme)
@@ -1168,9 +1209,9 @@ def apply_theme(theme_id, set_wallpaper=True):
     if set_wallpaper:
         switch_wallpaper(theme_id, theme)
 
-    # Terminal colors and live reload
+    # Terminal colors and remaining subsystem reload
     broadcast_term_colors(theme)
-    reload_subsystems()
+    reload_subsystems(restart_bar=False)
 
     # Notification
     theme_name = theme.get("name", theme_id)

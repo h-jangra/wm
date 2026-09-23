@@ -31,6 +31,10 @@ describe_action() {
         "spawn, rofi-powermenu") echo "Power Menu" ;;
         "spawn, rofi-keymaps"*) echo "Keybindings Cheat Sheet" ;;
         "spawn, rofi-screenshot"*) echo "Screenshot Menu" ;;
+        "spawn, rofi-wifi"*) echo "Wifi Menu" ;;
+        "spawn, rofi-audio"*) echo "Audio Menu" ;;
+        "spawn, rofi-bluetooth"*) echo "Bluetooth Menu" ;;
+        "spawn, rofi-battery"*) echo "Battery Menu" ;;
         "spawn, theme-select") echo "Theme Selector" ;;
         "spawn, theme-from-wallpaper") echo "Generate Theme from Wallpaper" ;;
         "spawn, wallpaper-select") echo "Wallpaper Selector" ;;

@@ -7,7 +7,8 @@
       "workspaces"
     ],
     "modules-center": [
-      "clock#time"
+      "clock#time",
+      "custom/media"
     ],
     "modules-right": [
         "custom/keyviz",
@@ -90,6 +91,18 @@
         "signal": 2,
         "on-click": "keyviz toggle",
         "on-click-right": "keyviz menu"
+    },
+
+    "custom/media": {
+        "format": "{}",
+        "exec": "media status",
+        "interval": 1,
+        "signal": 3,
+        "on-click": "media toggle",
+        "on-click-right": "media next",
+        "on-click-middle": "media info",
+        "on-scroll-up": "media next",
+        "on-scroll-down": "media prev"
     },
 
     "tray": {

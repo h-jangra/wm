@@ -1110,6 +1110,7 @@ chmod +x "$REPO_DIR"/config/mangobar/scripts/* \
 desktop_scripts=(
     "$REPO_DIR/config/mangobar/scripts/battery-status"
     "$REPO_DIR/config/mangobar/scripts/brightness"
+    "$REPO_DIR/config/mangobar/scripts/media"
     "$REPO_DIR/config/mangobar/scripts/get_window"
     "$REPO_DIR/config/mangobar/scripts/keyviz"
     "$REPO_DIR/config/mangobar/scripts/launch-audio"

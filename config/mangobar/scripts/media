@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# Mangobar media controller & indicator using playerctl
+
+signal_bar() {
+    pkill -RTMIN+3 mangobar 2>/dev/null || true
+}
+
+case "${1:-status}" in
+    status)
+        if playerctl status 2>/dev/null | grep -q "^Playing$"; then
+            printf '󰝚\n'
+        fi
+        ;;
+    toggle)
+        playerctl play-pause 2>/dev/null || true
+        signal_bar
+        ;;
+    next)
+        playerctl next 2>/dev/null || true
+        signal_bar
+        ;;
+    prev|previous)
+        playerctl previous 2>/dev/null || true
+        signal_bar
+        ;;
+    info)
+        title=$(playerctl metadata --format '{{ title }}' 2>/dev/null || true)
+        artist=$(playerctl metadata --format '{{ artist }}' 2>/dev/null || true)
+        if [[ -n "$title" ]]; then
+            if [[ -n "$artist" ]]; then
+                notify-send -h string:x-canonical-private-synchronous:wm-media "󰝚 Now Playing" "$title\n$artist"
+            else
+                notify-send -h string:x-canonical-private-synchronous:wm-media "󰝚 Now Playing" "$title"
+            fi
+        else
+            notify-send -h string:x-canonical-private-synchronous:wm-media "󰝚 Media" "No active media playback"
+        fi
+        ;;
+    *)
+        echo "Usage: $(basename "$0") {status|toggle|next|prev|info}"
+        exit 1
+        ;;
+esac
