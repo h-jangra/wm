@@ -4,6 +4,7 @@
 # ==============================================================================
 
 # Core Wayland Compositor & Desktop Shell
+xorg
 mangowc
 foot
 alacritty
@@ -16,7 +17,7 @@ libnotify-bin
 thunar
 thunar-archive-plugin
 thunar-volman
-papirus-icon-theme
+# papirus-icon-theme
 tumbler
 
 # Status Bar & Widgets (MangoBar built from source, Eww optional)

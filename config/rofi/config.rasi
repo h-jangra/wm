@@ -9,7 +9,8 @@ configuration {
     drun-display-format:        "{name}";
     window-format:              "{w} · {c} · {t}";
     terminal:                   "footclient";
-    run-shell-command:          "{terminal} -e {cmd}";
+    run-command:                "rofi-run {cmd}";
+    run-shell-command:          "rofi-run -t {cmd}";
     drun {
         gio-launch:             false;
     }

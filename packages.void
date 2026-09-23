@@ -4,6 +4,7 @@
 # ==============================================================================
 
 # Core Wayland Compositor & Desktop Shell
+xorg
 mangowc
 foot
 alacritty
@@ -16,11 +17,11 @@ libnotify
 Thunar
 thunar-archive-plugin
 thunar-volman
-papirus-icon-theme
+# papirus-icon-theme
 tumbler
 
 # Status Bar & Widgets (MangoBar built from source or package, Eww optional)
-mangobar
+# mangobar
 
 # Audio Subsystem (PipeWire + WirePlumber)
 pipewire
@@ -63,6 +64,7 @@ ninja
 pkg-config
 wayland-devel
 wayland-protocols
+libuuid
 fcft-devel
 pixman-devel
 cairo-devel
@@ -72,6 +74,7 @@ eudev-libudev-devel
 gdk-pixbuf-devel
 cJSON-devel
 basu-devel
+base-devel
 
 # Core CLI Utilities
 unzip

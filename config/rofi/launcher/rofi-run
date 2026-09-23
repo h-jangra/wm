@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# rofi-run: Smart command runner for Rofi run mode
+# Automatically detects if a command needs a terminal (e.g. nvim, wiremix, htop)
+# or is a GUI application (e.g. firefox, thunar).
+
+if [[ $# -eq 0 ]]; then
+    exit 0
+fi
+
+force_terminal=0
+if [[ "$1" == "-t" ]]; then
+    force_terminal=1
+    shift
+fi
+
+if [[ $# -eq 0 ]]; then
+    exit 0
+fi
+
+launch_terminal() {
+    if command -v footclient >/dev/null 2>&1; then
+        if footclient "$@" 2>/dev/null; then
+            exit 0
+        fi
+    fi
+    if command -v foot >/dev/null 2>&1; then
+        exec foot "$@"
+    fi
+    if command -v alacritty >/dev/null 2>&1; then
+        exec alacritty -e "$@"
+    fi
+    exec "$@"
+}
+
+launch_terminal_hold() {
+    if command -v footclient >/dev/null 2>&1; then
+        if footclient -H "$@" 2>/dev/null; then
+            exit 0
+        fi
+    fi
+    if command -v foot >/dev/null 2>&1; then
+        exec foot -H "$@"
+    fi
+    if command -v alacritty >/dev/null 2>&1; then
+        exec alacritty --hold -e "$@"
+    fi
+    exec "$@"
+}
+
+if [[ "$force_terminal" -eq 1 ]]; then
+    launch_terminal "$@"
+fi
+
+raw_cmd="$1"
+bin_name="$(basename "$raw_cmd")"
+bin_path="$(command -v "$bin_name" || command -v "$raw_cmd" || true)"
+
+# 1. Terminal emulators themselves should be executed directly
+case "$bin_name" in
+    foot|footclient|alacritty|kitty|wezterm|xterm|uxterm|ghostty)
+        exec "$@"
+        ;;
+esac
+
+# 2. Known CLI/TUI programs that always need a terminal
+case "$bin_name" in
+    nvim|vim|vi|nano|pico|emacs|neovim|helix|hx|kak|micro|\
+    wiremix|alsamixer|pulsemixer|mixertui|nmtui|bluetui|\
+    htop|top|btop|nethogs|iotop|iftop|glances|bashtop|\
+    ranger|yazi|lf|nnn|mc|vifm|joshuto|superfile|\
+    lazygit|gitui|lazydocker|k9s|\
+    ncdu|gdu|dua|dust|\
+    cmatrix|pipes.sh|cbonsai|sl|asciiquarium|peaclock|tty-clock|\
+    calcurse|cmus|mocp|ncmpcpp|\
+    fzf|tmux|screen|zellij|\
+    man|less|more|bat)
+        launch_terminal "$@"
+        ;;
+    fastfetch|neofetch|pfetch|cpufetch|onefetch)
+        launch_terminal_hold "$@"
+        ;;
+esac
+
+# 3. Check .desktop files for Terminal=true / Terminal=false
+desktop_file=""
+for dir in "$HOME/.local/share/applications" "/usr/share/applications"; do
+    if [[ -f "$dir/${bin_name}.desktop" ]]; then
+        desktop_file="$dir/${bin_name}.desktop"
+        break
+    fi
+done
+
+if [[ -z "$desktop_file" ]]; then
+    desktop_file=$(grep -sl -m1 -E "^Exec=([^ ]*/)?${bin_name}(\$|[ ])" "$HOME/.local/share/applications"/*.desktop /usr/share/applications/*.desktop 2>/dev/null | head -n1 || true)
+fi
+
+if [[ -n "$desktop_file" && -f "$desktop_file" ]]; then
+    if grep -qi "^Terminal=true" "$desktop_file"; then
+        launch_terminal "$@"
+    elif grep -qi "^Terminal=false" "$desktop_file"; then
+        exec "$@"
+    fi
+fi
+
+# 4. Check if binary links to GUI libraries (Wayland, X11, GTK, Qt, SDL)
+if [[ -n "$bin_path" && -x "$bin_path" ]]; then
+    if ldd "$bin_path" 2>/dev/null | grep -qE "libwayland-client|libX11|libxcb|libgtk|libQt|libSDL"; then
+        exec "$@"
+    fi
+fi
+
+# 5. Default fallback: If it's not a known GUI application, run in terminal
+launch_terminal "$@"

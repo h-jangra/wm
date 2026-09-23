@@ -27,31 +27,41 @@ if [[ -z "$THEME_SWITCH" || ! -x "$THEME_SWITCH" ]]; then
 fi
 
 declare -a theme_ids=()
-menu_items=""
+declare -a display_names=()
+active_idx=0
 
+# Helper to format/fetch a clean display name
+get_theme_name() {
+    local id="$1"
+    local name=""
+    if [[ -f "$DEFS_DIR/${id}.json" ]]; then
+        name=$(grep -m1 '"name":' "$DEFS_DIR/${id}.json" | awk -F'"' '{print $4}')
+    fi
+    if [[ -z "$name" ]]; then
+        name=$(echo "$id" | sed -E 's/(^|[-_])([a-z])/\U \2/g' | xargs)
+    fi
+    echo "$name"
+}
+
+# 1. Preset Themes
 if [[ -d "$PRESETS_DIR" ]]; then
     for d in "$PRESETS_DIR"/*/; do
         [[ -d "$d" ]] || continue
         id=$(basename "$d")
         if [[ -f "$d/theme.conf" || -f "$d/theme-config.bash" ]]; then
-            theme_ids+=("$id")
-            name="$(tr '[:lower:]' '[:upper:]' <<< "${id:0:1}")${id:1}"
-            icon="$d/preview.webp"
-            
-            prefix="  "
+            name=$(get_theme_name "$id")
             if [[ "$current_mode" == "static" && "$current_theme" == "$id" ]]; then
-                prefix="✔ "
-            fi
-            
-            if [[ -f "$icon" ]]; then
-                menu_items+="${prefix}${name}\0icon\x1f${icon}\n"
+                active_idx="${#theme_ids[@]}"
+                display_names+=("✔ ${name}")
             else
-                menu_items+="${prefix}${name}\0icon\x1fpreferences-desktop-theme\n"
+                display_names+=("${name}")
             fi
+            theme_ids+=("$id")
         fi
     done
 fi
 
+# 2. Color Palettes (only if not already in presets)
 if [[ -d "$DEFS_DIR" ]]; then
     for f in "$DEFS_DIR"/*.json; do
         [[ -f "$f" ]] || continue
@@ -59,27 +69,50 @@ if [[ -d "$DEFS_DIR" ]]; then
         for existing in "${theme_ids[@]}"; do
             [[ "$existing" == "$id" ]] && continue 2
         done
-        name=$(grep -m1 '"name":' "$f" | awk -F'"' '{print $4}')
-        theme_ids+=("$id")
-        
-        prefix="  "
+        name=$(get_theme_name "$id")
         if [[ "$current_mode" == "static" && "$current_theme" == "$id" ]]; then
-            prefix="✔ "
+            active_idx="${#theme_ids[@]}"
+            display_names+=("✔ ${name}")
+        else
+            display_names+=("${name}")
         fi
-        menu_items+="${prefix}${name}\0icon\x1fpreferences-desktop-theme\n"
+        theme_ids+=("$id")
     done
 fi
 
-theme_ids+=("dynamic")
-dyn_prefix="  "
+# 3. Dynamic Theme
 if [[ "$current_mode" == "dynamic" ]]; then
-    dyn_prefix="✔ "
+    active_idx="${#theme_ids[@]}"
+    display_names+=("✔ Dynamic Wallpaper")
+else
+    display_names+=("Dynamic Wallpaper")
 fi
-menu_items+="${dyn_prefix}Dynamic Wallpaper\0icon\x1fpreferences-desktop-wallpaper\n"
+theme_ids+=("dynamic")
 
-selected_idx=$(printf "%b" "$menu_items" | rofi -dmenu -format i -show-icons -p "Themes" ${RASI:+-theme "$RASI"} || true)
+menu_items=$(printf "%s\n" "${display_names[@]}")
 
-if [[ -z "$selected_idx" || "$selected_idx" -lt 0 ]]; then
+rofi_args=(
+    -dmenu
+    -i
+    -format i
+    -no-show-icons
+    -p "Themes"
+)
+
+if [[ -n "${active_idx:-}" && "$active_idx" =~ ^[0-9]+$ ]]; then
+    rofi_args+=(-selected-row "$active_idx")
+fi
+
+if [[ -n "${RASI:-}" && -f "$RASI" ]]; then
+    rofi_args+=(-theme "$RASI")
+fi
+
+set +e
+selected_idx=$(printf "%s\n" "$menu_items" | rofi "${rofi_args[@]}")
+status=$?
+set -e
+
+if [[ "$status" -ne 0 || -z "$selected_idx" || ! "$selected_idx" =~ ^[0-9]+$ || "$selected_idx" -ge "${#theme_ids[@]}" ]]; then
     exit 0
 fi
 

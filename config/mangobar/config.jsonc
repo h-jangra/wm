@@ -29,7 +29,7 @@
     },
 
     "clock#time": {
-        "format": "{:L%I:%M:%S %p}",
+        "format": "{:L%I:%M %p}",
         "format-alt": "{:L%a, %d %b}",
         "on-click-right": "rofi-calander"
     },
@@ -52,8 +52,8 @@
     },
 
     "memory": {
-        "format": "󰍛",
-        "format-alt": "󰍛 {}",
+        "format": "󰍛 {}",
+        "format-alt": "󰍛",
         "on-click-right": "launch-btop"
     },
 

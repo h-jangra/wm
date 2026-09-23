@@ -15,7 +15,6 @@
 
 #bar {
     background: @bg;
-    margin: 2px;
 }
 
 #tags {

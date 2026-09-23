@@ -116,28 +116,28 @@ detect_platform() {
 init_distro_vars() {
     case "$DISTRO_ID" in
         void)
-            BUILD_DEPS_LY=(pam-devel libxcb-devel git)
+            BUILD_DEPS_LY=(pam-devel base-devel libxcb-devel git xz)
             BUILD_DEPS_MANGOBAR=(meson ninja pkg-config wayland-devel wayland-protocols fcft-devel pixman-devel cairo-devel pango-devel pulseaudio-devel eudev-libudev-devel gdk-pixbuf-devel cJSON-devel basu-devel git)
             ESSENTIAL_SERVICES=(dbus elogind NetworkManager bluetoothd polkitd)
             HARDWARE_GROUPS=(video audio input network bluetooth poweroff)
             COMPETING_DMS=(sddm lightdm gdm lxdm greetd)
             ;;
         arch)
-            BUILD_DEPS_LY=(pam libxcb git)
+            BUILD_DEPS_LY=(pam base-devel libxcb git xz)
             BUILD_DEPS_MANGOBAR=(meson ninja pkgconf wayland wayland-protocols fcft pixman cairo pango libpulse systemd gdk-pixbuf2 cjson git)
             ESSENTIAL_SERVICES=(dbus NetworkManager bluetooth)
             HARDWARE_GROUPS=(video audio input network bluetooth poweroff)
             COMPETING_DMS=(sddm lightdm gdm lxdm greetd)
             ;;
         debian)
-            BUILD_DEPS_LY=(libpam0g-dev libxcb1-dev libxcb-xkb-dev git)
+            BUILD_DEPS_LY=(libpam0g-dev base-devel libxcb1-dev libxcb-xkb-dev git xz)
             BUILD_DEPS_MANGOBAR=(meson ninja-build pkg-config libwayland-dev wayland-protocols libfcft-dev libpixman-1-dev libcairo2-dev libpango1.0-dev libpulse-dev libudev-dev libgdk-pixbuf-2.0-dev libcjson-dev libbasu-dev git)
             ESSENTIAL_SERVICES=(dbus NetworkManager bluetooth)
             HARDWARE_GROUPS=(video audio input netdev bluetooth poweroff)
             COMPETING_DMS=(sddm lightdm gdm lxdm greetd)
             ;;
         *)
-            BUILD_DEPS_LY=(git)
+            BUILD_DEPS_LY=(git base-devel xz)
             BUILD_DEPS_MANGOBAR=(meson ninja git pkg-config)
             ESSENTIAL_SERVICES=()
             HARDWARE_GROUPS=(video audio input bluetooth poweroff)
@@ -325,16 +325,7 @@ pkg_setup_mirror() {
 }
 
 get_zig_url() {
-    local fallback="https://ziglang.org/builds/zig-x86_64-linux-0.17.0-dev.2228+955228b68.tar.xz"
-    local dynamic_url=""
-    if command -v curl >/dev/null 2>&1; then
-        dynamic_url=$(curl -fsSL --connect-timeout 4 https://ziglang.org/download/index.json 2>/dev/null | jq -r '.master["x86_64-linux"].tarball // empty' 2>/dev/null || true)
-    fi
-    if [[ -n "$dynamic_url" && "$dynamic_url" =~ ^https?:// ]]; then
-        echo "$dynamic_url"
-    else
-        echo "$fallback"
-    fi
+    curl -fsSL https://ziglang.org/download/index.json | jq -r '.["0.16.0"]["x86_64-linux"].tarball'
 }
 
 install_zig() {
@@ -1130,6 +1121,7 @@ desktop_scripts=(
     "$REPO_DIR/config/mangobar/scripts/rofi-battery"
     "$REPO_DIR/config/mangobar/scripts/volume"
     "$REPO_DIR/config/rofi/launcher/rofi-launcher"
+    "$REPO_DIR/config/rofi/launcher/rofi-run"
     "$REPO_DIR/config/rofi/calendar/rofi-calander"
     "$REPO_DIR/config/rofi/clipboard/clipboard-menu"
     "$REPO_DIR/config/rofi/powermenu/rofi-powermenu"
@@ -1244,34 +1236,58 @@ fi
 
 if [[ "$LOGIN_MANAGER" == "ly" ]]; then
     msg_info "Configuring Ly login manager..."
+    ly_ready=0
 
-    if ! command -v ly >/dev/null 2>&1 || [[ $BUILD_LY -eq 1 ]]; then
+    if command -v ly >/dev/null 2>&1 && [[ $BUILD_LY -eq 0 ]]; then
+        ly_ready=1
+    else
         msg_info "Building Ly from source..."
         pkg_install_build_deps ly
 
         BUILD_TMP=$(mktemp -d /tmp/ly-build-XXXXXX)
-        if git clone --recurse-submodules --depth 1 https://github.com/fairyglade/ly.git "$BUILD_TMP"; then
-            pushd "$BUILD_TMP" >/dev/null
+
+        if git clone --recurse-submodules --depth 1 \
+            https://github.com/fairyglade/ly.git "$BUILD_TMP"; then
+
+            pushd "$BUILD_TMP" >/dev/null || exit 1
+
             if command -v zig >/dev/null 2>&1; then
                 local_init="runit"
                 [[ "$INIT_SYSTEM" == "systemd" ]] && local_init="systemd"
-                if zig build -Doptimize=ReleaseSmall; then
-                    sudo zig build installexe -Dinit_system="$local_init" -Doptimize=ReleaseSmall
+
+                if zig build -Doptimize=ReleaseSmall &&
+                    sudo zig build installexe \
+                        -Dinit_system="$local_init" \
+                        -Doptimize=ReleaseSmall &&
+                    command -v ly >/dev/null 2>&1; then
+                    ly_ready=1
                     msg_ok "Ly successfully built and installed."
+                else
+                    msg_error "Ly build or installation failed."
                 fi
+            else
+                msg_error "Zig is not installed."
             fi
+
             popd >/dev/null
+        else
+            msg_error "Failed to clone Ly repository."
         fi
+
         rm -rf "$BUILD_TMP"
     fi
 
-    if command -v sudo >/dev/null 2>&1 && [[ ! -f /etc/pam.d/ly && -f /etc/pam.d/login ]]; then
-        sudo mkdir -p /etc/pam.d
-        sudo cp /etc/pam.d/login /etc/pam.d/ly
-    fi
+    if [[ $ly_ready -eq 1 ]]; then
+        if [[ ! -f /etc/pam.d/ly && -f /etc/pam.d/login ]]; then
+            sudo mkdir -p /etc/pam.d
+            sudo cp /etc/pam.d/login /etc/pam.d/ly
+        fi
 
-    dm_disable_competing "$AUTO_YES"
-    dm_enable_ly
+        dm_disable_competing "$AUTO_YES"
+        dm_enable_ly
+    else
+        msg_warn "Ly is unavailable. Skipping login manager configuration."
+    fi
 fi
 
 echo ""

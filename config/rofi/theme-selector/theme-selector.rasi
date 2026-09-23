@@ -1,5 +1,9 @@
 @import "../theme.rasi"
 
+configuration {
+    show-icons: false;
+}
+
 window {
     width:                       760px;
     location:                    center;
@@ -30,15 +34,23 @@ listview {
 }
 
 element {
-    orientation: vertical;
-    border-radius: 6px;
-    cursor: pointer;
+    orientation:                 horizontal;
+    padding:                     14px 16px;
+    border-radius:               8px;
+    cursor:                      pointer;
+    background-color:            transparent;
+}
+
+element-icon {
+    enabled:                     false;
 }
 
 element-text {
-    background-color: transparent;
-    vertical-align: 0.5;
-    horizontal-align: 0.5;
+    background-color:            transparent;
+    text-color:                  inherit;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
+    cursor:                      inherit;
 }
 
 element selected.normal {
@@ -48,4 +60,3 @@ element selected.normal {
     border-color:                @selected;
     font-weight:                 bold;
 }
-

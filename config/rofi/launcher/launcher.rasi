@@ -10,7 +10,8 @@ configuration {
     kb-element-next:            "";
     kb-element-prev:            "";
     terminal:                   "footclient";
-    run-shell-command:          "{terminal} -e {cmd}";
+    run-command:                "rofi-run {cmd}";
+    run-shell-command:          "rofi-run -t {cmd}";
     drun {
         gio-launch:             false;
     }

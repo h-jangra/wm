@@ -19,8 +19,6 @@ A clean, lightweight, and keyboard-driven Wayland desktop environment built with
 A minimalist, keyboard-driven Wayland desktop built primarily for Void Linux, with support for Arch Linux and Debian/Ubuntu.
 Modular configuration focused on simplicity and customization.
 
----
-
 ## Features
 
 - Theme switching with 8 color schemes.
@@ -31,8 +29,6 @@ Modular configuration focused on simplicity and customization.
 - MangoWC and Foot for a Wayland-based desktop.
 - Installers for Void Linux, Arch Linux, and Debian/Ubuntu.
 - Modular, path-independent configuration.
-
----
 
 ## Screenshots
 
@@ -58,8 +54,6 @@ Modular configuration focused on simplicity and customization.
 | <img src="assets/package-manager.png" width="440"> | <img src="assets/keybindings.png" width="440"> |
 
 </div>
-
----
 
 ## ⚡ Installation
 
@@ -87,8 +81,6 @@ The installer will:
   start-mango
   ```
 
----
-
 ## ⌨️ Keybindings
 
 All primary keybindings use the **Super** (Windows) key:
@@ -115,8 +107,6 @@ All primary keybindings use the **Super** (Windows) key:
 | `Super + H/J/K/L` | **Focus** | Navigate windows (Vim keys) |
 | `Super + R` | **Reload** | Hot-reload configuration |
 
----
-
 ## 🧩 Components
 
 | Component | Software | Description |
@@ -131,5 +121,3 @@ All primary keybindings use the **Super** (Windows) key:
 | **File Manager** | [Thunar](https://docs.xfce.org/xfce/thunar/start) | Fast GTK file manager |
 | **Audio Server** | [PipeWire](https://pipewire.org) | Low-latency multimedia audio engine |
 | **Display Manager**| [Ly](https://github.com/fairyglade/ly) | Minimal TUI display manager |
-
----
