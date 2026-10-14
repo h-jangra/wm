@@ -3,6 +3,11 @@ set -euo pipefail
 
 RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
+if [[ ! -S "$RUNTIME_DIR/bus" ]]; then
+    dbus-daemon --session --fork --address="unix:path=$RUNTIME_DIR/bus" 2>/dev/null || true
+fi
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$RUNTIME_DIR/bus"
+
 if pgrep -u "$USER" -x pipewire >/dev/null 2>&1; then
     if ! pactl info >/dev/null 2>&1; then
         pkill -u "$USER" -x pipewire-pulse 2>/dev/null || true

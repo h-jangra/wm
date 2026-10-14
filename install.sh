@@ -1047,10 +1047,8 @@ fi
 
 mkdir -p "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
 if [[ -f "$REPO_DIR/config/thunar/thunar.xml" ]]; then
-    if [[ ! -f "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml" ]] || ! cmp -s "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"; then
-        cp "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
-        msg_ok "Configured Thunar preferences."
-    fi
+    ln -sfn "$REPO_DIR/config/thunar/thunar.xml" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
+    msg_ok "Configured Thunar preferences."
 fi
 
 mkdir -p "$HOME/.config/gtk-4.0"
