@@ -14,7 +14,7 @@
         "custom/recorder",
         "network",
         "pulseaudio",
-        "memory",
+        "custom/memory",
         "backlight",
         "battery",
         "tray"
@@ -22,7 +22,7 @@
 
     "workspaces": {
         "hide-empty": true,
-        "tag-names": ["一", "二", "三", "四", "五", "六", "七", "八", "九"],
+        "tag-names": ["Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ", "Ⅸ"],
         "overview-label": "󰕴",
         "on-click": "activate",
         "on-click-right": "toggle"
@@ -51,7 +51,9 @@
         "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
     },
 
-    "memory": {
+    "custom/memory": {
+        "exec": "awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{u=(t-a)/1024; if(u>=1024) printf \"%.1f GB\",u/1024; else printf \"%.0f MB\",u}' /proc/meminfo",
+        "interval": 5,
         "format": "󰍛 {}",
         "format-alt": "󰍛",
         "on-click-right": "launch-btop"

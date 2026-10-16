@@ -69,6 +69,7 @@
 #keyboardlayout,
 #tray,
 #custom-power,
+#custom-memory,
 #custom-keyviz,
 #custom-recorder {
     background-color: @bg;
