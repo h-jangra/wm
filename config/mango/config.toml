@@ -1,0 +1,193 @@
+[global]
+new_is_master = 1
+smart_gaps = 0
+default_master_count = 1
+tag_num = 9
+default_master_factor = 0.5
+circle_layout = ["tile", "scroller"]
+view_current_to_back = 1
+scroller_structs = 40
+scroller_default_proportion = 0.5
+scroller_focus_center = 0
+scroller_prefer_center = 0
+scroller_prefer_overspread = 1
+edge_scroller_pointer_focus = 1
+scroller_default_proportion_single = 2.0
+scroller_proportion_preset = [0.5, 0.8, 1.0]
+border_radius = 6
+gap_inner_horizontal = 8
+gap_inner_vertical = 8
+gap_outer_horizontal = 8
+gap_outer_vertical = 8
+border_px = 1
+root_color = 0x1e1e2eff
+border_color = 0x45475aff
+focus_color = 0xb4befeff
+maximized_screen_color = 0x94e2d5ff
+urgent_color = 0xf38ba8ff
+scratchpad_color = 0x45475acc
+global_color = 0xf5c2e7aa
+overlay_color = 0xb4befeff
+cursor_theme = "Adwaita"
+cursor_size = 24
+animations = 1
+layer_animations = 1
+animation_type_open = "slide"
+animation_type_close = "zoom"
+animation_fade_in = 1
+animation_fade_out = 1
+zoom_initial_ratio = 0.88
+zoom_end_ratio = 1.0
+animation_duration_move = 320
+animation_duration_open = 280
+animation_duration_tag = 420
+animation_duration_close = 240
+animation_curve_open = [0.16, 1.0, 0.3, 1.0]
+animation_curve_move = [0.22, 1.0, 0.36, 1.0]
+animation_curve_tag = [0.16, 1.0, 0.3, 1.0]
+animation_curve_close = [0.7, 0.0, 0.84, 0.0]
+blur = 0
+blur_layer = 0
+blur_optimized = 0
+blur_params_num_passes = 0
+blur_params_radius = 0
+shadows = 1
+layer_shadows = 1
+exec_once = [
+  "mangobar",
+  "pipewire-launcher.sh",
+  "mako",
+  "wallpaper-manager restore",
+  "wl-paste --watch cliphist store",
+  "foot --server",
+  "/usr/libexec/polkit-gnome-authentication-agent-1 || /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 || lxpolkit"
+]
+
+[env]
+"XDG_CURRENT_DESKTOP" = "mango"
+"XDG_SESSION_TYPE" = "wayland"
+"MOZ_ENABLE_WAYLAND" = "1"
+"QT_QPA_PLATFORM" = "wayland;xcb"
+"QT_WAYLAND_DISABLE_WINDOWDECORATION" = "1"
+"GDK_BACKEND" = "wayland,x11,*"
+"CLUTTER_BACKEND" = "wayland"
+"SDL_VIDEODRIVER" = "wayland"
+"NO_AT_BRIDGE" = "1"
+
+[bind.default]
+"SUPER+Return" = "spawn,foot"
+"SUPER+e" = "spawn,thunar"
+"SUPER+w" = "spawn,firefox"
+"SUPER+d" = "spawn,rofi-launcher"
+"SUPER+Space" = "spawn,rofi-launcher"
+"SUPER+q" = "killclient,"
+"SUPER+Escape" = "spawn,rofi-powermenu"
+"SUPER+k" = "spawn,rofi-keymaps"
+"SUPER+t" = "spawn,theme-select"
+"SUPER+SHIFT+t" = "spawn,sh -c 'grim -g \"$(slurp)\" - | tesseract-ocr stdin stdout | wl-copy'"
+"SUPER+CTRL+t" = "spawn,theme-from-wallpaper"
+"SUPER+SHIFT+w" = "spawn,wallpaper-select"
+"SUPER+SHIFT+Return" = "toggle_named_scratchpad,foot-scratch,none,foot --app-id=foot-scratch"
+"SUPER+S" = "minimized"
+"SUPER+SHIFT+S" = "restore_minimized"
+"SUPER+v" = "spawn,clipboard-menu"
+"SUPER+r" = "reload_config"
+"SUPER+SHIFT+Tab" = "focuslast"
+"ALT+Space" = "spawn,sh -c 'foot -a pkg-installer -T \"pkg installer\" -W 140x40 package-manager.sh'"
+"SUPER+SHIFT+b" = "spawn,rofi-bluetooth"
+"SUPER+SHIFT+n" = "spawn,rofi-wifi"
+"SUPER+SHIFT+a" = "spawn,rofi-audio"
+"SUPER+SHIFT+z" = "spawn,rofi-battery"
+"SUPER+SHIFT+f" = "togglefullscreen,"
+"SUPER+f" = "togglemaximizescreen,"
+"SUPER+c" = "togglefloating,"
+"SUPER+o" = "toggleoverlay,"
+"SUPER+Tab" = "toggleoverview,"
+"SUPER+l" = ["spawn,swaylock -c 000000,"]
+"SUPER+p" = "spawn,hyprpicker"
+"SUPER+n" = "spawn,sh -c \"foot nvim\""
+"SUPER+1" = "view,1,0"
+"SUPER+2" = "view,2,0"
+"SUPER+3" = "view,3,0"
+"SUPER+4" = "view,4,0"
+"SUPER+5" = "view,5,0"
+"SUPER+6" = "view,6,0"
+"SUPER+7" = "view,7,0"
+"SUPER+8" = "view,8,0"
+"SUPER+9" = "view,9,0"
+"SUPER+SHIFT+1" = "tag,1,0"
+"SUPER+SHIFT+2" = "tag,2,0"
+"SUPER+SHIFT+3" = "tag,3,0"
+"SUPER+SHIFT+4" = "tag,4,0"
+"SUPER+SHIFT+5" = "tag,5,0"
+"SUPER+SHIFT+6" = "tag,6,0"
+"SUPER+SHIFT+7" = "tag,7,0"
+"SUPER+SHIFT+8" = "tag,8,0"
+"SUPER+SHIFT+9" = "tag,9,0"
+"NONE+XF86AudioRaiseVolume" = "spawn,volume --inc"
+"NONE+XF86AudioLowerVolume" = "spawn,volume --dec"
+"NONE+XF86AudioMute" = "spawn,volume --toggle"
+"NONE+XF86AudioMicMute" = "spawn,volume --toggle-mic"
+"NONE+XF86MonBrightnessUp" = "spawn,brightness --inc"
+"NONE+XF86MonBrightnessDown" = "spawn,brightness --dec"
+"NONE+Print" = "spawn,sh -c 'grim -g \"$(slurp)\" - | wl-copy'"
+"SUPER+Print" = "spawn,rofi-screenshot"
+"ALT+Print" = "spawn,sh -c 'grim -g \"$(mmsg get focusing-client | jq -r '\\''\"\\(.x),\\(.y) \\(.width)x\\(.height)\"'\\'')\" - | satty --filename -'"
+"SUPER+CTRL+Up" = "resizewin,+0,-40"
+"SUPER+CTRL+Down" = "resizewin,+0,+40"
+"SUPER+CTRL+Left" = "resizewin,-40,+0"
+"SUPER+CTRL+Right" = "resizewin,+40,+0"
+"SUPER+Left" = "focusdir,left"
+"SUPER+Right" = "focusdir,right"
+"SUPER+Up" = "focusdir,up"
+"SUPER+Down" = "focusdir,down"
+"SUPER+h" = "focusdir,left"
+
+"SUPER+j" = "focusdir,down"
+"SUPER+SHIFT+Left" = "exchange_client,left"
+"SUPER+SHIFT+Right" = "exchange_client,right"
+"SUPER+SHIFT+Up" = "exchange_client,up"
+"SUPER+SHIFT+Down" = "exchange_client,down"
+"SUPER+SHIFT+h" = "exchange_client,left"
+"SUPER+SHIFT+l" = "exchange_client,right"
+"SUPER+SHIFT+k" = "exchange_client,up"
+"SUPER+SHIFT+j" = "exchange_client,down"
+"CTRL+SHIFT+Up" = "movewin,+0,-40"
+"CTRL+SHIFT+Down" = "movewin,+0,+40"
+"CTRL+SHIFT+Left" = "movewin,-40,+0"
+"CTRL+SHIFT+Right" = "movewin,+40,+0"
+"CTRL+ALT+Up" = "resizewin,+0,-40"
+"CTRL+ALT+Down" = "resizewin,+0,+40"
+"CTRL+ALT+Left" = "resizewin,-40,+0"
+"CTRL+ALT+Right" = "resizewin,+40,+0"
+"SUPER+CTRL+l" = "switch_layout"
+
+[mousebind.default]
+"SUPER+btn_left" = "moveresize,curmove"
+"SUPER+btn_right" = "moveresize,curresize"
+
+[[rule.window_rule]]
+is_floating = 1
+app_id = "^(pavucontrol|imv|mpv|nm-connection-editor|blueman-manager|btop|linktui|wiremix)$"
+
+[[rule.window_rule]]
+is_floating = 1
+app_id = "^(thunar|swayimg)$"
+
+[[rule.window_rule]]
+is_floating = 1
+title = "^(pkg installer)$"
+
+[[rule.window_rule]]
+is_floating = 1
+title = "^(Open File|Select a File|Save As|Confirm|Preferences)$"
+
+[[rule.window_rule]]
+is_floating = 1
+title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$"
+
+[[rule.window_rule]]
+is_named_scratchpad = 1
+width = 1280
+height = 800
+app_id = "foot-scratch"
